@@ -1,0 +1,10 @@
+@import "./hubconnect-theme.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+
+[x-cloak] {
+    display: none;
+}

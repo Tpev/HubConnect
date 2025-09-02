@@ -1,0 +1,195 @@
+/* resources/css/hubconnect-theme.css */
+
+/* 1) Font (optional: you can keep this here instead of <head>) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+:root {
+  --ui-font: 'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji','Segoe UI Emoji','Segoe UI Symbol';
+}
+body { font-family: var(--ui-font); }
+
+/* 2) Brand tokens: Green primary + Orange secondary */
+:root{
+  --brand-50:#ecfdf5;  --brand-100:#d1fae5; --brand-200:#a7f3d0; --brand-300:#6ee7b7;
+  --brand-400:#34d399; --brand-500:#10b981; --brand-600:#059669; --brand-700:#047857;
+  --brand-800:#065f46; --brand-900:#064e3b;
+
+  --accent-50:#fff7ed;  --accent-100:#ffedd5; --accent-200:#fed7aa; --accent-300:#fdba74;
+  --accent-400:#fb923c; --accent-500:#f97316; --accent-600:#ea580c; --accent-700:#c2410c;
+  --accent-800:#9a3412; --accent-900:#7c2d12;
+
+  --ink:#0f172a; --ink-2:#334155; --border:#e2e8f0; --panel:#fff; --panel-soft:#f8fafc; --ring:var(--brand-200);
+}
+
+/* Nice text selection */
+::selection {
+  background: color-mix(in srgb, var(--brand-300) 55%, transparent);
+  color: var(--ink);
+}
+
+/* 3) Helpers — drop-in classes */
+.btn-brand{
+  background:var(--brand-600); color:#fff; border:1px solid var(--brand-600);
+  border-radius:.75rem; padding:.625rem 1rem; font-weight:600; box-shadow:0 1px 1px rgb(0 0 0 / .04);
+  transition:filter .2s ease, transform .02s ease, background-color .15s ease, border-color .15s ease;
+}
+.btn-brand:hover{ filter:brightness(1.05); }
+.btn-brand:active{ transform:translateY(1px); }
+.btn-brand.outline{ background:transparent; color:var(--brand-700); border:1px solid var(--brand-300); }
+
+.btn-accent{
+  background:var(--accent-600); color:#fff; border:1px solid var(--accent-600);
+  border-radius:.75rem; padding:.625rem 1rem; font-weight:600; box-shadow:0 1px 1px rgb(0 0 0 / .04);
+  transition:filter .2s ease, transform .02s ease, background-color .15s ease, border-color .15s ease;
+}
+.btn-accent:hover{ filter:brightness(1.05); }
+.btn-accent:active{ transform:translateY(1px); }
+.btn-accent.outline{ background:transparent; color:var(--accent-700); border:1px solid var(--accent-300); }
+
+/* Badges */
+.badge-brand{
+  background:var(--brand-50); color:var(--brand-700); border:1px solid var(--brand-200);
+  border-radius:.7rem; padding:.2rem .5rem; font-weight:600; font-size:.75rem;
+}
+.badge-accent{
+  background:var(--accent-50); color:var(--accent-700); border:1px solid var(--accent-200);
+  border-radius:.7rem; padding:.2rem .5rem; font-weight:600; font-size:.75rem;
+}
+
+/* Rings & chips */
+.ring-brand{ box-shadow:0 0 0 1px var(--brand-200) inset; }
+.ring-accent{ box-shadow:0 0 0 1px var(--accent-200) inset; }
+
+.chip-brand{
+  background:var(--brand-50); color:var(--brand-700); border:1px solid var(--brand-200);
+  border-radius:999px; padding:.25rem .6rem; font-size:.75rem; font-weight:600;
+}
+.chip-accent{
+  background:var(--accent-50); color:var(--accent-700); border:1px solid var(--accent-200);
+  border-radius:999px; padding:.25rem .6rem; font-size:.75rem; font-weight:600;
+}
+
+/* Section gradients */
+.grad-hero{
+  background-image:
+    radial-gradient(60rem 60rem at 50% -10rem, color-mix(in srgb, var(--brand-400) 18%, transparent) 0%, transparent 60%),
+    linear-gradient(180deg, color-mix(in srgb, var(--brand-50) 60%, transparent), transparent);
+}
+.grad-cta{ background-image:linear-gradient(90deg, var(--brand-600), var(--accent-600), var(--accent-500)); }
+
+/* Gentle remap of some indigo/fuchsia utility colors → green vibe (optional) */
+.text-indigo-600,.text-fuchsia-600{ color:var(--brand-700) !important; }
+.bg-indigo-50,.bg-fuchsia-50{ background-color:var(--brand-50) !important; }
+.ring-indigo-100,.ring-fuchsia-100{ --tw-ring-color: var(--brand-200) !important; }
+.bg-emerald-50{ background-color:var(--brand-50) !important; }
+.text-emerald-600{ color:var(--brand-700) !important; }
+
+/* Dark panel accent */
+.dark-panel{ background:#0b1220; color:#e5e7eb; border:1px solid rgba(255,255,255,.08); }
+.dark-panel .accent{ color:var(--accent-400); }
+
+/* =========================
+   Strong overrides for <x-ts-button>
+   (Prevents TallStack/Tailwind classes from winning)
+   ========================= */
+
+/* Primary (green) */
+.btn-brand,
+.btn-brand:focus,
+.btn-brand:active {
+  background-color: var(--brand-600) !important;
+  border-color: var(--brand-600) !important;
+  color: #fff !important;
+  box-shadow: 0 1px 1px rgb(0 0 0 / .04) !important;
+}
+.btn-brand:hover {
+  background-color: var(--brand-700) !important;
+  border-color: var(--brand-700) !important;
+  color: #fff !important;
+}
+.btn-brand:disabled,
+.btn-brand[disabled] {
+  opacity: .6 !important;
+  cursor: not-allowed !important;
+}
+
+/* Secondary (orange) */
+.btn-accent,
+.btn-accent:focus,
+.btn-accent:active {
+  background-color: var(--accent-600) !important;
+  border-color: var(--accent-600) !important;
+  color: #fff !important;
+  box-shadow: 0 1px 1px rgb(0 0 0 / .04) !important;
+}
+.btn-accent:hover {
+  background-color: var(--accent-700) !important;
+  border-color: var(--accent-700) !important;
+  color: #fff !important;
+}
+.btn-accent:disabled,
+.btn-accent[disabled] {
+  opacity: .6 !important;
+  cursor: not-allowed !important;
+}
+
+/* Outline variants */
+.btn-brand.outline,
+.btn-brand.outline:focus,
+.btn-brand.outline:active {
+  background: transparent !important;
+  color: var(--brand-700) !important;
+  border-color: var(--brand-300) !important;
+}
+.btn-brand.outline:hover {
+  background: color-mix(in srgb, var(--brand-50) 60%, transparent) !important;
+}
+
+.btn-accent.outline,
+.btn-accent.outline:focus,
+.btn-accent.outline:active {
+  background: transparent !important;
+  color: var(--accent-700) !important;
+  border-color: var(--accent-300) !important;
+}
+.btn-accent.outline:hover {
+  background: color-mix(in srgb, var(--accent-50) 60%, transparent) !important;
+}
+.badge-brand {
+  background: var(--brand-50) !important;
+  color: var(--brand-700) !important;
+  border: 1px solid var(--brand-200) !important;
+  border-radius:.7rem;
+  padding:.2rem .5rem;
+  font-weight:600;
+  font-size:.75rem;
+}
+.badge-accent {
+  background: var(--accent-50) !important;
+  color: var(--accent-700) !important;
+  border: 1px solid var(--accent-200) !important;
+  border-radius:.7rem;
+  padding:.2rem .5rem;
+  font-weight:600;
+  font-size:.75rem;
+}
+/* Make icons inside our custom buttons match the button text color */
+.btn-brand :is(svg, .ts-icon, [data-icon]){ color: currentColor !important; }
+.btn-accent :is(svg, .ts-icon, [data-icon]){ color: currentColor !important; }
+
+/* If the icon uses strokes/paths, ensure stroke follows currentColor */
+.btn-brand :is(svg *, path, circle, line, polyline, polygon){ stroke: currentColor !important; }
+.btn-accent :is(svg *, path, circle, line, polyline, polygon){ stroke: currentColor !important; }
+
+/* Prevent filled icons from staying white */
+.btn-brand :is(path, rect){ fill: none !important; }
+.btn-accent :is(path, rect){ fill: none !important; }
+
+
+/* Focus ring alignment with brand */
+.btn-brand:focus-visible,
+.btn-accent:focus-visible {
+  outline: none !important;
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.02) !important,
+    0 0 0 3px var(--brand-200) !important;
+}
