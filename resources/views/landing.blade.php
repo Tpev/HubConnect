@@ -75,7 +75,7 @@
 </span>
 
 <span class="block mt-2">
-    Match by specialty, territory & accounts — then manage coverage and commissions in one place.
+    Match by specialty, territory & accounts — then manage coverage and commissions in one place..
 </span>
 
                 </h1>
