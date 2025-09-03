@@ -13,7 +13,17 @@
     "
     class="relative min-h-screen bg-slate-50 text-slate-900 selection:bg-indigo-200/60 selection:text-slate-900"
 >
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-29ZRSRYL8W"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
 
+  gtag('config', 'G-29ZRSRYL8W');
+</script>
+</head>
 {{-- ===== Sticky CTA on scroll ===== --}}
 <div
     x-show="scrolled"
