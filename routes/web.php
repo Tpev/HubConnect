@@ -14,6 +14,45 @@ use App\Livewire\Public\DeviceShow as PDeviceShow;
 use App\Http\Controllers\DeviceController;
 use App\Livewire\Manufacturer\DeviceForm as MDeviceForm;
 use App\Livewire\Manufacturer\MatchInbox; // NEW: manufacturer match requests inbox
+use App\Http\Controllers\CvDownloadController;
+use App\Http\Controllers\RoleplayInviteController;
+use App\Http\Controllers\RoleplaySubmitController;
+use App\Livewire\Recruitment\OpeningCreate;
+use App\Livewire\Recruitment\OpeningEdit;
+
+Route::prefix('employer/openings')->group(function () {
+    Route::get('create', OpeningCreate::class)->name('employer.openings.create');
+    Route::get('{opening:slug}/edit', OpeningEdit::class)->name('employer.openings.edit');
+});
+
+
+
+// Public openings
+Route::get('/openings', \App\Livewire\Recruitment\OpeningIndexPublic::class)->name('openings.index');
+Route::get('/openings/{opening:slug}', \App\Livewire\Recruitment\OpeningShowPublic::class)->name('openings.show');
+Route::get('/openings/{opening:slug}/apply', \App\Livewire\Recruitment\ApplicationStart::class)
+    ->name('openings.apply');
+
+// Employer area
+Route::middleware(['auth'])->group(function () {
+//	Route::get('/employer/openings/create', \App\Livewire\Recruitment\OpeningForm::class)->name('employer.openings.create');
+    Route::get('/employer/openings', \App\Livewire\Recruitment\EmployerOpeningsIndex::class)->name('employer.openings');
+
+   // Route::get('/employer/openings/{opening}/edit', \App\Livewire\Recruitment\OpeningForm::class)->name('employer.openings.edit');
+   Route::get('/employer/openings/{opening}/applications', \App\Livewire\Recruitment\ApplicantsTable::class)->name('employer.openings.applications');
+
+    // Signed CV download
+    Route::get('/employer/applications/{application}/cv', CvDownloadController::class)
+        ->middleware('signed')->name('applications.cv');
+});
+
+// Roleplay token entry
+Route::get('/r/{token}', [RoleplayInviteController::class, 'show'])->name('roleplay.invite.show');
+Route::post('/r/{token}/submit', [RoleplaySubmitController::class, 'store'])->name('roleplay.submit');
+
+
+Route::get('/roleplay', \App\Livewire\RoleplaySimulator::class)
+    ->name('roleplay.simulator');
 
 
 Route::view('/how-it-works', 'how-it-works')->name('how-it-works');
@@ -127,7 +166,7 @@ Route::view('/resources', 'public.resources.index')->name('resources');
 
 Route::view('/case-studies', 'public.case-studies.index')->name('cases.index');
 Route::get('/case-studies/{slug}', fn($slug) => view('public.case-studies.show', compact('slug')))
-    ->name('cases.show');
+    ->name('cases.show'); 
 
 /*
 |--------------------------------------------------------------------------

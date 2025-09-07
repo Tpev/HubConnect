@@ -27,6 +27,10 @@ return [
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
+	'roleplay' => [
+    'url' => env('ROLEPLAY_API_URL', 'http://127.0.0.1:8601'),
+],
+
 
     'slack' => [
         'notifications' => [

@@ -1,92 +1,131 @@
-{{-- resources/views/navigation-menu.blade.php (or wherever your nav lives) --}}
+{{-- resources/views/navigation-menu.blade.php --}}
 @php
-    $user = Auth::user();
-    $team = $user?->currentTeam;
-    $companyType = $team?->company_type; // 'manufacturer' | 'distributor' | maybe 'both'
+    use Illuminate\Support\Facades\Auth;
+
+    $user        = Auth::user();
+    $team        = $user?->currentTeam;
+    $companyType = $team?->company_type; // 'manufacturer' | 'distributor' | 'both' | null
+
+    $isActive = function (string|array $patterns): string {
+        foreach ((array)$patterns as $p) {
+            if (request()->routeIs($p)) return 'text-[var(--brand-700)]';
+        }
+        return 'text-slate-600 hover:text-[var(--brand-700)]';
+    };
 @endphp
 
-<nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
-    <!-- Primary Navigation Menu -->
+<nav x-data="{ open: false }" class="sticky top-0 z-40 bg-white/85 backdrop-blur border-b border-[var(--border)]">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-            <div class="flex">
-                <!-- Logo -->
-                <div class="shrink-0 flex items-center">
-                    <a href="{{ route('dashboard') }}">
-                        <x-application-mark class="block h-9 w-auto" />
-                    </a>
-                </div>
+        <div class="flex h-16 items-center justify-between">
 
-                <!-- Navigation Links (Desktop) -->
-                <div class="hidden sm:flex sm:ms-10 sm:items-center sm:gap-6">
-                    {{-- Always show Dashboard --}}
-                    <x-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')">
-                        {{ __('Dashboard') }}
-                    </x-nav-link>
+            {{-- Left: Logo + Primary links --}}
+            <div class="flex items-center gap-6">
+                {{-- Logo --}}
+                <a href="{{ route('dashboard') }}" class="flex items-center shrink-0">
+                    <x-application-mark class="block h-9 w-auto" />
+                </a>
+
+                {{-- Desktop nav --}}
+                <ul class="hidden sm:flex items-center gap-1">
+                    <li>
+                        <a href="{{ route('dashboard') }}"
+                           class="px-3 py-2 rounded-lg font-semibold {{ $isActive('dashboard') }}">
+                            Dashboard
+                        </a>
+                    </li>
 
                     {{-- Manufacturer menu --}}
                     @if($companyType === 'manufacturer' || $companyType === 'both')
-                        <x-nav-link href="{{ route('m.devices') }}" :active="request()->routeIs('m.devices') || request()->routeIs('m.devices.*')">
-                            {{ __('My Devices') }}
-                        </x-nav-link>
-                        <x-nav-link href="{{ route('m.devices.create') }}" :active="request()->routeIs('m.devices.create')">
-                            {{ __('New Device') }}
-                        </x-nav-link>
+                        <li>
+                            <a href="{{ route('m.devices') }}"
+                               class="px-3 py-2 rounded-lg font-semibold {{ $isActive(['m.devices','m.devices.*']) }}">
+                                My Devices
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('m.devices.create') }}"
+                               class="px-3 py-2 rounded-lg font-semibold {{ $isActive('m.devices.create') }}">
+                                New Device
+                            </a>
+                        </li>
                     @endif
 
                     {{-- Distributor menu --}}
                     @if($companyType === 'distributor' || $companyType === 'both')
-                        <x-nav-link href="{{ route('devices.index') }}" :active="request()->routeIs('devices.index') || request()->routeIs('devices.show')">
-                            {{ __('Catalog') }}
-                        </x-nav-link>
-                        {{-- add more distributor links as they exist --}}
-                        {{-- <x-nav-link href="{{ route('leads.index') }}" :active="request()->routeIs('leads.*')">{{ __('Leads') }}</x-nav-link> --}}
+                        <li>
+                            <a href="{{ route('devices.index') }}"
+                               class="px-3 py-2 rounded-lg font-semibold {{ $isActive(['devices.index','devices.show']) }}">
+                                Catalog
+                            </a>
+                        </li>
                     @endif
 
-                    {{-- Optional: Admin menu --}}
-                    @if($user?->is_admin ?? false)
-                        <x-nav-link href="{{ route('admin.dashboard') }}" :active="request()->routeIs('admin.*')">
-                            {{ __('Admin') }}
-                        </x-nav-link>
+                    {{-- Recruitment (employer) --}}
+                    @if(Route::has('employer.openings'))
+                        <li>
+                            <a href="{{ route('employer.openings') }}"
+                               class="px-3 py-2 rounded-lg font-semibold {{ $isActive(['employer.openings','employer.openings.*']) }}">
+                                Recruitment
+                            </a>
+                        </li>
                     @endif
-                </div>
+
+                    {{-- Admin --}}
+                    @if($user?->is_admin ?? false)
+                        <li>
+                            <a href="{{ route('admin.dashboard') }}"
+                               class="px-3 py-2 rounded-lg font-semibold {{ $isActive('admin.*') }}">
+                                Admin
+                            </a>
+                        </li>
+                    @endif
+                </ul>
             </div>
 
-            <div class="hidden sm:flex sm:items-center sm:ms-6">
-                {{-- Teams Dropdown (unchanged) --}}
+            {{-- Right: Actions + Team + User --}}
+            <div class="hidden sm:flex items-center gap-3">
+
+                {{-- Public jobs quick link (opens the public board) --}}
+                @if(Route::has('openings.index'))
+                    <a href="{{ route('openings.index') }}" class="btn-accent outline text-sm">
+                        Public Jobs
+                    </a>
+                @endif
+
+                {{-- Teams Dropdown (Jetstream) --}}
                 @if (Laravel\Jetstream\Jetstream::hasTeamFeatures())
-                    <div class="ms-3 relative">
+                    <div class="relative">
                         <x-dropdown align="right" width="60">
                             <x-slot name="trigger">
-                                <span class="inline-flex rounded-md">
-                                    <button type="button" class="inline-flex items-center px-3 py-2 text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none focus:bg-gray-50 transition">
-                                        {{ Auth::user()->currentTeam->name }}
-                                        <svg class="ms-2 -me-0.5 size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
-                                        </svg>
-                                    </button>
-                                </span>
+                                <button type="button"
+                                        class="inline-flex items-center px-3 py-2 text-sm font-semibold rounded-lg
+                                               text-slate-600 hover:text-[var(--brand-700)] bg-white ring-1 ring-[var(--border)]">
+                                    {{ Auth::user()->currentTeam->name }}
+                                    <svg class="ms-2 -me-0.5 size-4" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                         viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                              d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
+                                    </svg>
+                                </button>
                             </x-slot>
 
                             <x-slot name="content">
                                 <div class="w-60">
-                                    <div class="block px-4 py-2 text-xs text-gray-400">
-                                        {{ __('Manage Team') }}
-                                    </div>
+                                    <div class="block px-4 py-2 text-xs text-gray-400">Manage Team</div>
+
                                     <x-dropdown-link href="{{ route('teams.show', Auth::user()->currentTeam->id) }}">
-                                        {{ __('Team Settings') }}
+                                        Team Settings
                                     </x-dropdown-link>
+
                                     @can('create', Laravel\Jetstream\Jetstream::newTeamModel())
                                         <x-dropdown-link href="{{ route('teams.create') }}">
-                                            {{ __('Create New Team') }}
+                                            Create New Team
                                         </x-dropdown-link>
-                                    @endcan>
+                                    @endcan
 
                                     @if (Auth::user()->allTeams()->count() > 1)
-                                        <div class="border-t border-gray-200"></div>
-                                        <div class="block px-4 py-2 text-xs text-gray-400">
-                                            {{ __('Switch Teams') }}
-                                        </div>
+                                        <div class="border-t border-gray-200 my-1"></div>
+                                        <div class="block px-4 py-2 text-xs text-gray-400">Switch Teams</div>
                                         @foreach (Auth::user()->allTeams() as $teamOption)
                                             <x-switchable-team :team="$teamOption" />
                                         @endforeach
@@ -97,39 +136,41 @@
                     </div>
                 @endif
 
-                {{-- User Dropdown (unchanged) --}}
-                <div class="ms-3 relative">
+                {{-- User Dropdown (Jetstream) --}}
+                <div class="relative">
                     <x-dropdown align="right" width="48">
                         <x-slot name="trigger">
                             @if (Laravel\Jetstream\Jetstream::managesProfilePhotos())
-                                <button class="flex text-sm border-2 border-transparent rounded-full focus:outline-none focus:border-gray-300 transition">
-                                    <img class="size-8 rounded-full object-cover" src="{{ Auth::user()->profile_photo_url }}" alt="{{ Auth::user()->name }}" />
+                                <button class="flex text-sm border-2 border-transparent rounded-full focus:outline-none focus:border-[var(--brand-300)] transition">
+                                    <img class="size-8 rounded-full object-cover"
+                                         src="{{ Auth::user()->profile_photo_url }}"
+                                         alt="{{ Auth::user()->name }}" />
                                 </button>
                             @else
-                                <span class="inline-flex rounded-md">
-                                    <button type="button" class="inline-flex items-center px-3 py-2 text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none focus:bg-gray-50 transition">
-                                        {{ Auth::user()->name }}
-                                        <svg class="ms-2 -me-0.5 size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                                        </svg>
-                                    </button>
-                                </span>
+                                <button type="button"
+                                        class="inline-flex items-center px-3 py-2 text-sm font-semibold rounded-lg
+                                               text-slate-600 hover:text-[var(--brand-700)] bg-white ring-1 ring-[var(--border)]">
+                                    {{ Auth::user()->name }}
+                                    <svg class="ms-2 -me-0.5 size-4" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                         viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                              d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                    </svg>
+                                </button>
                             @endif
                         </x-slot>
 
                         <x-slot name="content">
-                            <div class="block px-4 py-2 text-xs text-gray-400">
-                                {{ __('Manage Account') }}
-                            </div>
-                            <x-dropdown-link href="{{ route('profile.show') }}">{{ __('Profile') }}</x-dropdown-link>
+                            <div class="block px-4 py-2 text-xs text-gray-400">Manage Account</div>
+                            <x-dropdown-link href="{{ route('profile.show') }}">Profile</x-dropdown-link>
                             @if (Laravel\Jetstream\Jetstream::hasApiFeatures())
-                                <x-dropdown-link href="{{ route('api-tokens.index') }}">{{ __('API Tokens') }}</x-dropdown-link>
+                                <x-dropdown-link href="{{ route('api-tokens.index') }}">API Tokens</x-dropdown-link>
                             @endif
-                            <div class="border-t border-gray-200"></div>
+                            <div class="border-t border-gray-200 my-1"></div>
                             <form method="POST" action="{{ route('logout') }}" x-data>
                                 @csrf
                                 <x-dropdown-link href="{{ route('logout') }}" @click.prevent="$root.submit();">
-                                    {{ __('Log Out') }}
+                                    Log Out
                                 </x-dropdown-link>
                             </form>
                         </x-slot>
@@ -137,96 +178,125 @@
                 </div>
             </div>
 
-            <!-- Hamburger -->
+            {{-- Mobile hamburger --}}
             <div class="-me-2 flex items-center sm:hidden">
-                <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none transition">
+                <button @click="open = ! open"
+                        class="inline-flex items-center justify-center p-2 rounded-md
+                               text-slate-500 hover:text-[var(--brand-700)] hover:bg-[var(--brand-50)]
+                               focus:outline-none transition">
                     <svg class="size-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                        <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex"
+                              stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 6h16M4 12h16M4 18h16" />
+                        <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden"
+                              stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Responsive Navigation Menu (Mobile) -->
-    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
-        <div class="pt-2 pb-3 space-y-1">
-            {{-- Always show Dashboard --}}
-            <x-responsive-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')">
-                {{ __('Dashboard') }}
-            </x-responsive-nav-link>
+    {{-- Mobile menu --}}
+    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden border-t border-[var(--border)]">
+        <div class="px-4 pt-2 pb-3 space-y-1">
 
-            {{-- Manufacturer menu --}}
+            <a href="{{ route('dashboard') }}"
+               class="block px-3 py-2 rounded-lg font-semibold {{ $isActive('dashboard') }}">
+                Dashboard
+            </a>
+
             @if($companyType === 'manufacturer' || $companyType === 'both')
-                <x-responsive-nav-link href="{{ route('m.devices') }}" :active="request()->routeIs('m.devices') || request()->routeIs('m.devices.*')">
-                    {{ __('My Devices') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link href="{{ route('m.devices.create') }}" :active="request()->routeIs('m.devices.create')">
-                    {{ __('New Device') }}
-                </x-responsive-nav-link>
+                <a href="{{ route('m.devices') }}"
+                   class="block px-3 py-2 rounded-lg font-semibold {{ $isActive(['m.devices','m.devices.*']) }}">
+                    My Devices
+                </a>
+                <a href="{{ route('m.devices.create') }}"
+                   class="block px-3 py-2 rounded-lg font-semibold {{ $isActive('m.devices.create') }}">
+                    New Device
+                </a>
             @endif
 
-            {{-- Distributor menu --}}
             @if($companyType === 'distributor' || $companyType === 'both')
-                <x-responsive-nav-link href="{{ route('devices.index') }}" :active="request()->routeIs('devices.index') || request()->routeIs('devices.show')">
-                    {{ __('Catalog') }}
-                </x-responsive-nav-link>
+                <a href="{{ route('devices.index') }}"
+                   class="block px-3 py-2 rounded-lg font-semibold {{ $isActive(['devices.index','devices.show']) }}">
+                    Catalog
+                </a>
             @endif
 
-            {{-- Admin --}}
+            @if(Route::has('employer.openings'))
+                <a href="{{ route('employer.openings') }}"
+                   class="block px-3 py-2 rounded-lg font-semibold {{ $isActive(['employer.openings','employer.openings.*']) }}">
+                    Recruitment
+                </a>
+            @endif
+
             @if($user?->is_admin ?? false)
-                <x-responsive-nav-link href="{{ route('admin.dashboard') }}" :active="request()->routeIs('admin.*')">
-                    {{ __('Admin') }}
-                </x-responsive-nav-link>
+                <a href="{{ route('admin.dashboard') }}"
+                   class="block px-3 py-2 rounded-lg font-semibold {{ $isActive('admin.*') }}">
+                    Admin
+                </a>
+            @endif
+
+            @if(Route::has('openings.index'))
+                <a href="{{ route('openings.index') }}" class="inline-flex items-center mt-2 btn-accent outline text-sm">
+                    Public Jobs
+                </a>
             @endif
         </div>
 
-        <!-- Responsive Settings Options (unchanged) -->
-        <div class="pt-4 pb-1 border-t border-gray-200">
+        {{-- Mobile: user/teams --}}
+        <div class="pt-4 pb-4 border-t border-[var(--border)]">
             <div class="flex items-center px-4">
                 @if (Laravel\Jetstream\Jetstream::managesProfilePhotos())
                     <div class="shrink-0 me-3">
-                        <img class="size-10 rounded-full object-cover" src="{{ Auth::user()->profile_photo_url }}" alt="{{ Auth::user()->name }}" />
+                        <img class="size-10 rounded-full object-cover"
+                             src="{{ Auth::user()->profile_photo_url }}" alt="{{ Auth::user()->name }}" />
                     </div>
                 @endif
                 <div>
-                    <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
-                    <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
+                    <div class="font-medium text-base text-slate-800">{{ Auth::user()->name }}</div>
+                    <div class="font-medium text-sm text-slate-500">{{ Auth::user()->email }}</div>
                 </div>
             </div>
 
-            <div class="mt-3 space-y-1">
-                <x-responsive-nav-link href="{{ route('profile.show') }}" :active="request()->routeIs('profile.show')">
-                    {{ __('Profile') }}
-                </x-responsive-nav-link>
+            <div class="mt-3 space-y-1 px-4">
+                <a href="{{ route('profile.show') }}"
+                   class="block px-3 py-2 rounded-lg font-semibold {{ $isActive('profile.show') }}">
+                    Profile
+                </a>
                 @if (Laravel\Jetstream\Jetstream::hasApiFeatures())
-                    <x-responsive-nav-link href="{{ route('api-tokens.index') }}" :active="request()->routeIs('api-tokens.index')">
-                        {{ __('API Tokens') }}
-                    </x-responsive-nav-link>
+                    <a href="{{ route('api-tokens.index') }}"
+                       class="block px-3 py-2 rounded-lg font-semibold {{ $isActive('api-tokens.index') }}">
+                        API Tokens
+                    </a>
                 @endif
+
                 <form method="POST" action="{{ route('logout') }}" x-data>
                     @csrf
-                    <x-responsive-nav-link href="{{ route('logout') }}" @click.prevent="$root.submit();">
-                        {{ __('Log Out') }}
-                    </x-responsive-nav-link>
+                    <a href="{{ route('logout') }}" @click.prevent="$root.submit();"
+                       class="block px-3 py-2 rounded-lg font-semibold text-slate-600 hover:text-[var(--brand-700)]">
+                        Log Out
+                    </a>
                 </form>
 
-                {{-- Teams (unchanged) --}}
+                {{-- Teams (mobile) --}}
                 @if (Laravel\Jetstream\Jetstream::hasTeamFeatures())
-                    <div class="border-t border-gray-200"></div>
-                    <div class="block px-4 py-2 text-xs text-gray-400">{{ __('Manage Team') }}</div>
-                    <x-responsive-nav-link href="{{ route('teams.show', Auth::user()->currentTeam->id) }}" :active="request()->routeIs('teams.show')">
-                        {{ __('Team Settings') }}
-                    </x-responsive-nav-link>
+                    <div class="border-t border-[var(--border)] my-2"></div>
+                    <div class="block px-3 py-2 text-xs text-gray-400">Manage Team</div>
+                    <a href="{{ route('teams.show', Auth::user()->currentTeam->id) }}"
+                       class="block px-3 py-2 rounded-lg font-semibold {{ $isActive('teams.show') }}">
+                        Team Settings
+                    </a>
                     @can('create', Laravel\Jetstream\Jetstream::newTeamModel())
-                        <x-responsive-nav-link href="{{ route('teams.create') }}" :active="request()->routeIs('teams.create')">
-                            {{ __('Create New Team') }}
-                        </x-responsive-nav-link>
+                        <a href="{{ route('teams.create') }}"
+                           class="block px-3 py-2 rounded-lg font-semibold {{ $isActive('teams.create') }}">
+                            Create New Team
+                        </a>
                     @endcan
                     @if (Auth::user()->allTeams()->count() > 1)
-                        <div class="border-t border-gray-200"></div>
-                        <div class="block px-4 py-2 text-xs text-gray-400">{{ __('Switch Teams') }}</div>
+                        <div class="border-t border-[var(--border)] my-2"></div>
+                        <div class="block px-3 py-2 text-xs text-gray-400">Switch Teams</div>
                         @foreach (Auth::user()->allTeams() as $teamOption)
                             <x-switchable-team :team="$teamOption" component="responsive-nav-link" />
                         @endforeach
