@@ -8,6 +8,23 @@
 
         <form method="POST" action="{{ route('register') }}">
             @csrf
+			<!-- Company Name -->
+<div class="mt-4">
+    <x-label for="company_name" value="Company Name" />
+    <x-input id="company_name" class="block mt-1 w-full" type="text" name="company_name" :value="old('company_name')" required />
+</div>
+
+<!-- Company Type -->
+<div class="mt-4">
+    <x-label for="company_type" value="Company Type" />
+    <select id="company_type" name="company_type" class="block mt-1 w-full border-gray-300 rounded-md shadow-sm" required>
+        <option value="" disabled {{ old('company_type') ? '' : 'selected' }}>Select one</option>
+        <option value="manufacturer" @selected(old('company_type')==='manufacturer')>Manufacturer</option>
+        <option value="distributor" @selected(old('company_type')==='distributor')>Distributor</option>
+        <option value="both" @selected(old('company_type')==='both')>Both</option>
+    </select>
+    @error('company_type') <span class="text-sm text-red-600">{{ $message }}</span> @enderror
+</div>
 
             <div>
                 <x-label for="name" value="{{ __('Name') }}" />

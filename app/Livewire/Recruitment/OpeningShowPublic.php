@@ -20,10 +20,8 @@ class OpeningShowPublic extends Component
             404
         );
 
-        $this->opening = $opening->only([
-            'id','slug','title','company_type','compensation','specialty_ids','territory_ids',
-            'description','roleplay_policy','roleplay_pass_threshold','visibility_until','created_at'
-        ]) ? $opening : $opening; // keep model instance for date casting
+        // Keep full model instance so casts/enums work and new fields are present
+        $this->opening = $opening;
     }
 
     public function render()

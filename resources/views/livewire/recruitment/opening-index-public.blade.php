@@ -16,7 +16,7 @@
                     Open Positions
                 </h1>
                 <p class="text-slate-600 max-w-2xl mx-auto">
-                    Roles from manufacturers and distributors. Filter by specialty, territory, and more.
+                    Roles from manufacturers and distributors. Filter by specialty, territory, comp, and type.
                 </p>
             </div>
         </div>
@@ -26,7 +26,7 @@
     <div class="max-w-7xl mx-auto px-4 py-6 space-y-6">
 
         <x-ts-card class="p-5 ring-brand bg-white/90 backdrop-blur">
-            <div class="grid grid-cols-1 lg:grid-cols-6 gap-3">
+            <div class="grid grid-cols-1 lg:grid-cols-8 gap-3">
                 {{-- Search --}}
                 <div class="lg:col-span-2">
                     <x-ts-input
@@ -42,25 +42,25 @@
                     <label class="block text-xs font-semibold text-slate-500 mb-1">Company type</label>
                     <div class="flex rounded-xl ring-1 ring-[var(--border)] overflow-hidden bg-white">
                         <button type="button" wire:click="$set('companyType','all')"
-                                class="flex-1 px-3 py-2 text-sm font-semibold transition
-                                    {{ $companyType==='all' ? 'bg-[var(--brand-50)] text-[var(--brand-800)] ring-brand' : 'text-slate-700' }}">
+                            class="flex-1 px-3 py-2 text-sm font-semibold transition
+                                   {{ $companyType==='all' ? 'bg-[var(--brand-50)] text-[var(--brand-800)] ring-brand' : 'text-slate-700' }}">
                             All
                         </button>
                         <button type="button" wire:click="$set('companyType','manufacturer')"
-                                class="flex-1 px-3 py-2 text-sm font-semibold transition
-                                    {{ $companyType==='manufacturer' ? 'bg-[var(--brand-50)] text-[var(--brand-800)] ring-brand' : 'text-slate-700' }}">
+                            class="flex-1 px-3 py-2 text-sm font-semibold transition
+                                   {{ $companyType==='manufacturer' ? 'bg-[var(--brand-50)] text-[var(--brand-800)] ring-brand' : 'text-slate-700' }}">
                             Manufacturer
                         </button>
                         <button type="button" wire:click="$set('companyType','distributor')"
-                                class="flex-1 px-3 py-2 text-sm font-semibold transition
-                                    {{ $companyType==='distributor' ? 'bg-[var(--brand-50)] text-[var(--brand-800)] ring-brand' : 'text-slate-700' }}">
+                            class="flex-1 px-3 py-2 text-sm font-semibold transition
+                                   {{ $companyType==='distributor' ? 'bg-[var(--brand-50)] text-[var(--brand-800)] ring-brand' : 'text-slate-700' }}">
                             Distributor
                         </button>
                     </div>
                 </div>
 
                 {{-- Specialty --}}
-                <div>
+                <div class="lg:col-span-2">
                     <x-ts-select.styled
                         label="Specialty"
                         wire:model.live="specialty"
@@ -71,7 +71,7 @@
                 </div>
 
                 {{-- Territory --}}
-                <div>
+                <div class="lg:col-span-2">
                     <x-ts-select.styled
                         label="Territory"
                         wire:model.live="territory"
@@ -80,12 +80,33 @@
                         placeholder="Any territory"
                     />
                 </div>
+
+                {{-- NEW: Comp structure --}}
+                <div class="lg:col-span-2">
+                    <x-ts-select.styled
+                        label="Comp structure"
+                        wire:model.live="compStructure"
+                        :options="$compStructureOptions"
+                        select="label:label|value:value"
+                        placeholder="Any comp structure"
+                    />
+                </div>
+
+                {{-- NEW: Opening type --}}
+                <div class="lg:col-span-2">
+                    <x-ts-select.styled
+                        label="Opening type"
+                        wire:model.live="openingType"
+                        :options="$openingTypeOptions"
+                        select="label:label|value:value"
+                        placeholder="Any opening type"
+                    />
+                </div>
             </div>
 
             {{-- Secondary toolbar --}}
             <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-2">
-                    {{-- Not clearable to avoid null/unset --}}
                     <x-ts-select.styled
                         wire:model.live="sort"
                         label="Sort"
@@ -104,27 +125,31 @@
                     />
                 </div>
 
-                {{-- Active filters + actions --}}
+                {{-- Active filters --}}
                 <div class="flex flex-wrap items-center gap-2">
-                    @if($search)
-                        <span class="chip-brand">Search: “{{ $search }}”</span>
+                    @if($search)      <span class="chip-brand">Search: “{{ $search }}”</span>@endif
+                    @if($specialty)   <span class="chip-brand">Specialty: {{ $specialty }}</span>@endif
+                    @if($territory)   <span class="chip-accent">Territory: {{ $territory }}</span>@endif
+                    @if($compStructure)
+                        <span class="chip-brand">
+                            Comp: {{ optional(\App\Enums\CompStructure::tryFrom($compStructure))->label() ?? $compStructure }}
+                        </span>
                     @endif
-                    @if($specialty)
-                        <span class="chip-brand">Specialty: {{ $specialty }}</span>
+                    @if($openingType)
+                        <span class="chip-accent">
+                            Type: {{ optional(\App\Enums\OpeningType::tryFrom($openingType))->label() ?? $openingType }}
+                        </span>
                     @endif
-                    @if($territory)
-                        <span class="chip-accent">Territory: {{ $territory }}</span>
-                    @endif
-                    @if($search || $specialty || $territory || $companyType !== 'all')
+
+                    @if($search || $specialty || $territory || $companyType!=='all' || $compStructure || $openingType)
                         <button type="button"
-                                wire:click="$set('search','');$set('specialty',null);$set('territory',null);$set('companyType','all')"
-                                class="btn-brand outline text-sm">
+                            wire:click="$set('search','');$set('specialty',null);$set('territory',null);$set('companyType','all');$set('compStructure',null);$set('openingType',null)"
+                            class="btn-brand outline text-sm">
                             Clear filters
                         </button>
                     @endif
-                    <x-ts-button type="button" wire:click="$refresh" class="btn-brand outline">
-                        Refresh
-                    </x-ts-button>
+
+                    <x-ts-button type="button" wire:click="$refresh" class="btn-brand outline">Refresh</x-ts-button>
                 </div>
             </div>
         </x-ts-card>
@@ -147,16 +172,12 @@
              class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             @forelse ($openings as $o)
                 <x-ts-card class="p-5 space-y-4 ring-brand bg-white/90 hover:shadow-md transition">
-                    {{-- Top meta line --}}
+                    {{-- Top meta --}}
                     <div class="flex items-center justify-between">
-                        <div class="text-xs font-semibold text-slate-500">
-                            {{ ucfirst($o->company_type) }}
-                        </div>
+                        <div class="text-xs font-semibold text-slate-500">{{ ucfirst($o->company_type) }}</div>
                         @if($o->visibility_until)
                             @php $days = \Carbon\Carbon::parse($o->visibility_until)->diffInDays(now()); @endphp
-                            <span class="chip-accent">
-                                {{ $days <= 14 ? 'Closing soon' : 'Open' }}
-                            </span>
+                            <span class="chip-accent">{{ $days <= 14 ? 'Closing soon' : 'Open' }}</span>
                         @endif
                     </div>
 
@@ -168,19 +189,32 @@
                     </a>
 
                     {{-- Compensation panel --}}
-                    <div class="rounded-xl ring-1 ring-[var(--brand-200)] bg-[var(--brand-50)]/70 p-3 flex items-start gap-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-                             class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H7"/>
-                        </svg>
-                        <div class="min-w-0">
-                            <div class="text-[11px] uppercase tracking-wide font-bold text-[var(--brand-800)]">Compensation</div>
-                            @if($o->compensation)
-                                <div class="text-sm sm:text-base font-semibold text-[var(--ink)] leading-tight">
-                                    {{ $o->compensation }}
+                    <div class="rounded-xl ring-1 ring-[var(--brand-200)] bg-[var(--brand-50)]/70 p-3 space-y-2">
+                        <div class="flex items-start gap-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                 class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H7"/>
+                            </svg>
+                            <div class="min-w-0">
+                                <div class="text-[11px] uppercase tracking-wide font-bold text-[var(--brand-800)]">
+                                    Compensation
                                 </div>
-                            @else
-                                <div class="text-sm text-slate-600">Not disclosed</div>
+                                <div class="text-sm sm:text-base font-semibold text-[var(--ink)] leading-tight">
+                                    {{ $o->compensation ?: 'Not disclosed' }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-1.5 pt-1">
+                            @if($o->comp_structure)
+                                <span class="chip-brand">
+                                    {{ $o->comp_structure?->label() ?? Str::headline((string)$o->comp_structure) }}
+                                </span>
+                            @endif
+                            @if($o->opening_type)
+                                <span class="chip-accent">
+                                    {{ $o->opening_type?->label() ?? Str::upper((string)$o->opening_type) }}
+                                </span>
                             @endif
                         </div>
                     </div>
@@ -211,8 +245,7 @@
                     </div>
 
                     <div class="pt-1">
-                        <a href="{{ route('openings.show', $o->slug) }}"
-                           class="btn-brand inline-flex items-center gap-2">
+                        <a href="{{ route('openings.show', $o->slug) }}" class="btn-brand inline-flex items-center gap-2">
                             View details
                             <x-ts-icon name="arrow-right" />
                         </a>
@@ -223,9 +256,8 @@
                     <div class="space-y-2">
                         <h3 class="text-lg font-semibold">No openings match your filters</h3>
                         <p class="text-slate-600 text-sm">Try clearing filters or check back soon.</p>
-                        <button type="button"
-                                class="btn-accent outline"
-                                wire:click="$set('search','');$set('specialty',null);$set('territory',null);$set('companyType','all')">
+                        <button type="button" class="btn-accent outline"
+                            wire:click="$set('search','');$set('specialty',null);$set('territory',null);$set('companyType','all');$set('compStructure',null);$set('openingType',null)">
                             Clear all filters
                         </button>
                     </div>

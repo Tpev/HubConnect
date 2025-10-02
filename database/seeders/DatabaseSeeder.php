@@ -13,7 +13,9 @@ class DatabaseSeeder extends Seeder
             TerritorySeeder::class,
 			DeviceCategorySeeder::class,
 			TestUsersSeeder::class,
-			DeviceRealisticSeeder::class,
+			CertificationSeeder::class,
+			SpecialtySeeder::class,
+			RoleplayScenarioPackSeeder::class,
         ]);
     }
 }

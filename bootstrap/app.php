@@ -16,8 +16,13 @@ return Application::configure(basePath: dirname(__DIR__))
             // ✅ add/ensure these two aliases exist
             'ensure.company.type' => \App\Http\Middleware\EnsureCompanyType::class,
             'not.manufacturer'    => \App\Http\Middleware\RedirectManufacturersFromDevices::class,
+			 'admin' => \App\Http\Middleware\AdminMiddleware::class,
+			 'company.verified' => \App\Http\Middleware\EnsureCompanyVerified::class,
         ]);
     })
+	    ->withProviders([
+        App\Providers\FortifyServiceProvider::class,
+    ])
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();

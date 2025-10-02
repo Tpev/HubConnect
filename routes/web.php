@@ -20,12 +20,96 @@ use App\Http\Controllers\RoleplaySubmitController;
 use App\Livewire\Recruitment\OpeningCreate;
 use App\Livewire\Recruitment\OpeningEdit;
 
+// Companies (directory side)
+use App\Livewire\Companies\Index as DirectoryCompaniesIndex;
+use App\Livewire\Companies\Show  as DirectoryCompanyShow;
+use App\Livewire\Companies\ProfileWizard;
+use App\Livewire\Companies\IntentEditor;
+
+// Requests
+use App\Livewire\Requests\Index as RequestsIndex;
+
+// Admin
+use App\Livewire\Admin\Dashboard;
+use App\Livewire\Admin\UsersIndex;
+use App\Livewire\Admin\UserShow;
+use App\Livewire\Admin\CompaniesIndex as AdminCompaniesIndex;
+use App\Livewire\Admin\CompanyShow   as AdminCompanyShow;
+use App\Http\Controllers\DealRoomController;
+use App\Livewire\DealRooms\Show as DealRoomShow;
+use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\KycController;
+use App\Http\Controllers\Admin\KycReviewController;
+
+Route::middleware(['web','auth','verified'])->group(function () {
+    // Status page (read-only)
+    Route::get('/club', [KycController::class, 'gate'])->name('kyc.gate');
+
+    // Admin KYC review
+    Route::get('/admin/kyc', [KycReviewController::class, 'index'])->name('admin.kyc.index');
+    Route::put('/admin/kyc/{team}/approve', [KycReviewController::class, 'approve'])->name('admin.kyc.approve');
+    Route::put('/admin/kyc/{team}/reject',  [KycReviewController::class, 'reject'])->name('admin.kyc.reject');
+
+    // Gate market-facing features
+    Route::middleware(['company.verified'])->group(function () {
+        Route::get('/companies', [\App\Http\Controllers\CompanyDirectoryController::class, 'index'])->name('companies.index');
+        Route::get('/requests',  [\App\Http\Controllers\RequestsController::class, 'index'])->name('requests.index');
+        Route::get('/deal-rooms', [\App\Http\Controllers\DealRoomController::class, 'index'])->name('deal-rooms.index');
+        Route::get('/deal-rooms/{room}', \App\Livewire\DealRooms\Show::class)->name('deal-rooms.show');
+    });
+});
+
+Route::middleware(['web','auth','verified'])->group(function () {
+    Route::get('/companies/{team}', [CompanyController::class, 'show'])->name('companies.show');
+});
+
+Route::middleware(['web','auth'])->group(function () {
+    Route::get('/deal-rooms', [DealRoomController::class, 'index'])->name('deal-rooms.index');
+    Route::get('/deal-rooms/{room}', DealRoomShow::class)->name('deal-rooms.show');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Admin Panel
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['web','auth','verified','admin'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+        Route::get('/', Dashboard::class)->name('dashboard');
+
+        Route::get('/users', UsersIndex::class)->name('users.index');
+        Route::get('/users/{user}', UserShow::class)->name('users.show');
+
+        Route::get('/companies', AdminCompaniesIndex::class)->name('companies.index');
+        Route::get('/companies/{company}', AdminCompanyShow::class)->name('companies.show');
+    });
+
+/*
+|--------------------------------------------------------------------------
+| Authenticated (non-admin) / Directory
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth','verified'])->group(function () {
+    Route::get('/companies', DirectoryCompaniesIndex::class)->name('companies.index');
+    Route::get('/companies/{company}', DirectoryCompanyShow::class)->name('companies.show');
+
+    Route::get('/companies/{company}/intent', IntentEditor::class)->name('companies.intent.edit');
+    Route::get('/companies/{company}/profile', ProfileWizard::class)->name('companies.profile.edit');
+
+    Route::get('/requests', RequestsIndex::class)->name('requests.index');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Employer / Recruitment
+|--------------------------------------------------------------------------
+*/
 Route::prefix('employer/openings')->group(function () {
     Route::get('create', OpeningCreate::class)->name('employer.openings.create');
     Route::get('{opening:slug}/edit', OpeningEdit::class)->name('employer.openings.edit');
 });
-
-
 
 // Public openings
 Route::get('/openings', \App\Livewire\Recruitment\OpeningIndexPublic::class)->name('openings.index');
@@ -35,75 +119,58 @@ Route::get('/openings/{opening:slug}/apply', \App\Livewire\Recruitment\Applicati
 
 // Employer area
 Route::middleware(['auth'])->group(function () {
-//	Route::get('/employer/openings/create', \App\Livewire\Recruitment\OpeningForm::class)->name('employer.openings.create');
     Route::get('/employer/openings', \App\Livewire\Recruitment\EmployerOpeningsIndex::class)->name('employer.openings');
-
-   // Route::get('/employer/openings/{opening}/edit', \App\Livewire\Recruitment\OpeningForm::class)->name('employer.openings.edit');
-   Route::get('/employer/openings/{opening}/applications', \App\Livewire\Recruitment\ApplicantsTable::class)->name('employer.openings.applications');
+    Route::get('/employer/openings/{opening}/applications', \App\Livewire\Recruitment\ApplicantsTable::class)->name('employer.openings.applications');
 
     // Signed CV download
     Route::get('/employer/applications/{application}/cv', CvDownloadController::class)
         ->middleware('signed')->name('applications.cv');
 });
 
-// Roleplay token entry
+/*
+|--------------------------------------------------------------------------
+| Roleplay
+|--------------------------------------------------------------------------
+*/
 Route::get('/r/{token}', [RoleplayInviteController::class, 'show'])->name('roleplay.invite.show');
 Route::post('/r/{token}/submit', [RoleplaySubmitController::class, 'store'])->name('roleplay.submit');
-
 
 Route::get('/roleplay', \App\Livewire\RoleplaySimulator::class)
     ->name('roleplay.simulator');
 
-
+/*
+|--------------------------------------------------------------------------
+| Marketing Pages
+|--------------------------------------------------------------------------
+*/
 Route::view('/how-it-works', 'how-it-works')->name('how-it-works');
 Route::view('/pricing', 'pricing')->name('pricing');
 
 /*
 |--------------------------------------------------------------------------
-| Tools / Utilities
-|--------------------------------------------------------------------------
-*/
-// (none shown here — keep yours if any)
-
-/*
-|--------------------------------------------------------------------------
-| Manufacturer (authenticated, verified, and proper company type)
-| - Devices index is a Blade page via DeviceController@index
-| - Create/Edit remain Livewire
-| - NEW: Matches inbox
+| Manufacturer (authenticated, verified, company type = manufacturer)
 |--------------------------------------------------------------------------
 */
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'verified',
-    'ensure.company.type:manufacturer', // enforce manufacturer team
+    'ensure.company.type:manufacturer',
 ])->prefix('m')->name('m.')->group(function () {
-    // INDEX: Blade-hosted page (Livewire mounted inside)
     Route::get('/devices', [DeviceController::class, 'index'])->name('devices');
-
-    // CREATE (Livewire)
     Route::get('/devices/create', MDeviceForm::class)->name('devices.create');
-
-    // STUDIO (Blade via controller)
     Route::get('/devices/{device}/studio', [DeviceController::class, 'studio'])
         ->whereNumber('device')
         ->name('devices.studio');
-
-    // EDIT (Livewire) — avoid implicit binding conflicts
     Route::get('/devices/{deviceId}/edit', MDeviceForm::class)
         ->whereNumber('deviceId')
         ->name('devices.edit');
-
-    // NEW — Manufacturer: match requests inbox (accept/reject)
     Route::get('/matches', MatchInbox::class)->name('matches.index');
 });
 
 /*
 |--------------------------------------------------------------------------
-| Public / Distributor devices pages
-| - Public catalog & show remain accessible (your "not.manufacturer" keeps MFGs out)
-| - NEW: /discover requires distributor login (nice shortcut + can host extra distributor-only UI later)
+| Public / Distributor devices
 |--------------------------------------------------------------------------
 */
 Route::get('/devices', PDeviceIndex::class)
@@ -114,7 +181,6 @@ Route::get('/devices/{slug}', PDeviceShow::class)
     ->middleware('not.manufacturer')
     ->name('devices.show');
 
-// NEW — Distributor-only discover (same component, gated to distributor teams)
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
@@ -126,7 +192,7 @@ Route::middleware([
 
 /*
 |--------------------------------------------------------------------------
-| Onboarding (auth only; no company-type enforcement so users can set it)
+| Onboarding
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -136,16 +202,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| Landing + Marketing pages
+| Landing + Marketing Pages
 |--------------------------------------------------------------------------
 */
 Route::view('/', 'landing')->name('landing');
-
 Route::view('/manufacturers', 'public.manufacturers')->name('manufacturers');
 Route::view('/reps', 'public.reps')->name('reps');
-
-
-
 Route::view('/about', 'public.about')->name('about');
 Route::view('/security', 'public.security')->name('security');
 Route::view('/contact', 'public.contact')->name('contact');
@@ -156,17 +218,15 @@ Route::view('/privacy', 'public.legal.privacy')->name('privacy');
 
 /*
 |--------------------------------------------------------------------------
-| Blog / Resources (keep your controllers/views)
+| Blog / Resources
 |--------------------------------------------------------------------------
 */
 Route::get('/blog', [\App\Http\Controllers\BlogController::class, 'index'])->name('blog.index');
 Route::get('/blog/{slug}', [\App\Http\Controllers\BlogController::class, 'show'])->name('blog.show');
-
 Route::view('/resources', 'public.resources.index')->name('resources');
-
 Route::view('/case-studies', 'public.case-studies.index')->name('cases.index');
 Route::get('/case-studies/{slug}', fn($slug) => view('public.case-studies.show', compact('slug')))
-    ->name('cases.show'); 
+    ->name('cases.show');
 
 /*
 |--------------------------------------------------------------------------

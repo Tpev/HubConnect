@@ -9,16 +9,17 @@ class SpecialtySeeder extends Seeder
 {
     public function run(): void
     {
-        $names = [
-            'Cardiology','Dermatology','Endocrinology','Gastroenterology','Hematology',
-            'Infectious Disease','Nephrology','Neurology','Neurosurgery','OB/GYN',
-            'Oncology','Ophthalmology','Orthopedics','Otolaryngology (ENT)','Pediatrics',
-            'Plastic Surgery','Primary Care / Family Medicine','Pulmonology','Radiology',
-            'Rheumatology','Urology','Vascular Surgery','Wound Care',
+        $data = [
+            ['code'=>'orthopedics','name'=>'Orthopedics','parent_code'=>null],
+            ['code'=>'spine','name'=>'Spine','parent_code'=>'orthopedics'],
+            ['code'=>'trauma','name'=>'Trauma','parent_code'=>'orthopedics'],
+            ['code'=>'wound_care','name'=>'Wound Care','parent_code'=>null],
+            ['code'=>'cardiology','name'=>'Cardiology','parent_code'=>null],
+            ['code'=>'diagnostics','name'=>'Diagnostics','parent_code'=>null],
         ];
 
-        foreach ($names as $n) {
-            Specialty::firstOrCreate(['name' => $n]);
+        foreach ($data as $row) {
+            Specialty::updateOrCreate(['code'=>$row['code']], $row);
         }
     }
 }

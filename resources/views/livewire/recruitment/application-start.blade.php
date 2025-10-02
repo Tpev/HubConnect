@@ -1,190 +1,267 @@
-@php
-    use Illuminate\Support\Str;
-@endphp
-
 <div> {{-- SINGLE ROOT WRAPPER --}}
 
-    {{-- ===== Header ===== --}}
+    {{-- Header --}}
     <section class="grad-hero border-b border-[var(--border)]/80">
         <div class="max-w-5xl mx-auto px-4 py-6">
-            <a href="{{ route('openings.show', $opening->slug) }}" class="text-xs text-[var(--brand-700)] hover:underline">← Back to opening</a>
-
-            <div class="mt-2 flex flex-wrap items-center justify-between gap-3">
-                <div class="min-w-0">
-                    <div class="inline-flex items-center gap-2">
-                        <span class="chip-brand">{{ ucfirst($opening->company_type) }}</span>
-                        @if($opening->visibility_until)
-                            @php $days = $opening->visibility_until->diffInDays(now()); @endphp
-                            <span class="chip-accent">{{ $days <= 14 ? 'Closing soon' : 'Open' }}</span>
-                        @endif
-                    </div>
-                    <h1 class="mt-2 text-2xl sm:text-3xl font-semibold tracking-tight text-[var(--ink)]">
-                        Apply — {{ $opening->title }}
-                    </h1>
-                </div>
-
-                {{-- Compact link back to job (desktop) --}}
-                <div class="hidden md:block shrink-0">
-                    <a href="{{ route('openings.index') }}" class="text-sm text-[var(--brand-700)] hover:underline">
-                        Browse all jobs
-                    </a>
-                </div>
+            <div class="space-y-1">
+                <a href="{{ route('openings.show', $opening->slug) }}"
+                   class="text-xs text-[var(--brand-700)] hover:underline">← Back to opening</a>
+                <div class="text-slate-500 text-sm">{{ ucfirst($opening->company_type) }}</div>
+                <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight">Apply — {{ $opening->title }}</h1>
             </div>
         </div>
     </section>
 
-    {{-- ===== Quick facts ===== --}}
-    <div class="max-w-5xl mx-auto px-4 py-6">
-        <x-ts-card class="p-4 ring-brand bg-white/95">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {{-- Compensation --}}
-                <div class="rounded-lg ring-1 ring-[var(--brand-200)] bg-[var(--brand-50)]/70 p-3">
-                    <div class="text-[10px] uppercase tracking-wide font-bold text-[var(--brand-800)]">Compensation</div>
-                    <div class="text-sm font-semibold text-[var(--ink)] leading-tight">
-                        {{ $opening->compensation ?: 'Not disclosed' }}
-                    </div>
-                </div>
-                {{-- Posted --}}
-                <div class="rounded-lg ring-1 ring-[var(--border)] bg-[var(--panel)] p-3">
-                    <div class="text-[10px] uppercase tracking-wide font-bold text-slate-600">Posted</div>
-                    <div class="text-sm text-[var(--ink)]">
-                        {{ $opening->created_at?->toFormattedDateString() }}
-                        <span class="text-slate-500">({{ $opening->created_at?->diffForHumans() }})</span>
-                    </div>
-                </div>
-                {{-- Visibility --}}
-                <div class="rounded-lg ring-1 ring-[var(--border)] bg-[var(--panel)] p-3">
-                    <div class="text-[10px] uppercase tracking-wide font-bold text-slate-600">Visibility</div>
-                    <div class="text-sm text-[var(--ink)]">
-                        @if($opening->visibility_until)
-                            Until {{ $opening->visibility_until->toDateString() }}
-                        @else
-                            Open until removed
-                        @endif
-                    </div>
-                </div>
-            </div>
-        </x-ts-card>
-    </div>
+    <div class="max-w-5xl mx-auto px-4 py-6 space-y-6">
 
-    {{-- ===== Body ===== --}}
-    <div class="max-w-5xl mx-auto px-4 pb-8 space-y-6">
-
-        {{-- Submitted state --}}
         @if($submitted)
-            <x-ts-card class="p-6 ring-brand bg-white/95 space-y-2">
-                <div class="text-sm font-semibold text-[var(--brand-700)]">
-                    Thanks! Your application has been submitted.
-                </div>
-                <div class="text-slate-600 text-sm">
+            <x-ts-card class="p-6 ring-brand">
+                <div class="text-lg font-semibold text-[var(--brand-700)]">Thanks! Your application has been submitted.</div>
+                <div class="text-slate-600 text-sm mt-1">
                     We’ll review your profile and be in touch.
-                    @if($opening->roleplay_policy !== 'disabled')
-                        This role uses a roleplay evaluation
-                        <strong>({{ $opening->roleplay_policy }})</strong>
-                        @if($opening->roleplay_pass_threshold)
-                            — target score: <strong>{{ number_format($opening->roleplay_pass_threshold, 2) }}</strong>
-                        @endif
-                        . You may receive an invite link by email.
+                </div>
+            </x-ts-card>
+        @else
+            {{-- Contact (always) --}}
+            <x-ts-card class="p-5 ring-brand space-y-4">
+                <h2 class="text-lg font-semibold">Contact</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="md:col-span-2">
+                        <x-ts-input label="Full name" wire:model.live="candidate_name" placeholder="Jane Doe" />
+                        @error('candidate_name') <x-ts-error :text="$message" /> @enderror
+                    </div>
+
+                    <div>
+                        <x-ts-input type="email" label="Email" wire:model.live="email" placeholder="jane.doe@example.com" />
+                        @error('email') <x-ts-error :text="$message" /> @enderror
+                    </div>
+
+                    <div>
+                        <x-ts-input label="Phone" wire:model.live="phone" placeholder="(555) 555-0123" />
+                        @error('phone') <x-ts-error :text="$message" /> @enderror
+                    </div>
+
+                    <div>
+                        <x-ts-input label="City" wire:model.live="location" placeholder="Austin" />
+                        @error('location') <x-ts-error :text="$message" /> @enderror
+                    </div>
+
+                    @if($this->ask('state'))
+                        <div>
+                            <x-ts-select.styled
+                                label="State / Territory"
+                                wire:model.live="state"
+                                :options="$territoryOptions"
+                                select="label:label|value:value"
+                                placeholder="Choose state" />
+                            @error('state') <x-ts-error :text="$message" /> @enderror
+                        </div>
                     @endif
                 </div>
-                <div class="pt-2 flex items-center gap-3">
-                    <a href="{{ route('openings.show', $opening->slug) }}" class="btn-brand outline text-sm">Back to job</a>
-                    <a href="{{ route('openings.index') }}" class="text-sm text-[var(--brand-700)] hover:underline">Browse all jobs</a>
+            </x-ts-card>
+
+            {{-- Experience (only if any of these fields are asked) --}}
+            @if($this->asksAny(['years_total','years_med_device','travel_percent_max','specialties','overnight_ok','driver_license']))
+                <x-ts-card class="p-5 ring-brand space-y-4">
+                    <h2 class="text-lg font-semibold">Experience</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        @if($this->ask('years_total'))
+                            <div>
+                                <x-ts-input type="number" min="0" step="0.1" label="Total B2B sales (years)" wire:model.live="years_total" placeholder="e.g., 6" />
+                                @error('years_total') <x-ts-error :text="$message" /> @enderror
+                            </div>
+                        @endif
+
+                        @if($this->ask('years_med_device'))
+                            <div>
+                                <x-ts-input type="number" min="0" step="0.1" label="Medical device (years)" wire:model.live="years_med_device" placeholder="e.g., 3" />
+                                @error('years_med_device') <x-ts-error :text="$message" /> @enderror
+                            </div>
+                        @endif
+
+                        @if($this->ask('travel_percent_max'))
+                            <div>
+                                <x-ts-input type="number" min="0" max="100" step="1" label="Max travel (%)" wire:model.live="travel_percent_max" placeholder="e.g., 30" />
+                                @error('travel_percent_max') <x-ts-error :text="$message" /> @enderror
+                            </div>
+                        @endif
+
+                        @if($this->ask('specialties'))
+                            <div class="md:col-span-3">
+                                <x-ts-select.styled
+                                    label="Specialties (experience)"
+                                    wire:model.live="specialties"
+                                    :options="$specialtyOptions"
+                                    multiple searchable
+                                    select="label:label|value:value"
+                                    placeholder="Select specialties" />
+                            </div>
+                        @endif
+
+                        @if($this->ask('overnight_ok'))
+                            <div>
+                                <x-ts-select.styled
+                                    label="Overnights OK"
+                                    wire:model.live="overnight_ok"
+                                    :options="[['label'=>'Yes','value'=>true],['label'=>'No','value'=>false]]"
+                                    select="label:label|value:value"
+                                    placeholder="Select" />
+                                @error('overnight_ok') <x-ts-error :text="$message" /> @enderror
+                            </div>
+                        @endif
+
+                        @if($this->ask('driver_license'))
+                            <div>
+                                <x-ts-select.styled
+                                    label="Driver license & car"
+                                    wire:model.live="driver_license"
+                                    :options="[['label'=>'Yes','value'=>true],['label'=>'No','value'=>false]]"
+                                    select="label:label|value:value"
+                                    placeholder="Select" />
+                                @error('driver_license') <x-ts-error :text="$message" /> @enderror
+                            </div>
+                        @endif
+                    </div>
+                </x-ts-card>
+            @endif
+
+            {{-- Preferences (conditional) --}}
+            @if($this->asksAny(['opening_type_accepts','comp_structure_accepts','expected_base','expected_ote','cold_outreach_ok']))
+                <x-ts-card class="p-5 ring-brand space-y-4">
+                    <h2 class="text-lg font-semibold">Employment & compensation preferences</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        @if($this->ask('opening_type_accepts'))
+                            <div>
+                                <x-ts-select.styled
+                                    label="Open employment types"
+                                    wire:model.live="opening_type_accepts"
+                                    :options="$openingTypeOptions"
+                                    multiple searchable
+                                    select="label:label|value:value"
+                                    placeholder="Select one or more" />
+                            </div>
+                        @endif
+
+                        @if($this->ask('comp_structure_accepts'))
+                            <div>
+                                <x-ts-select.styled
+                                    label="Open comp structures"
+                                    wire:model.live="comp_structure_accepts"
+                                    :options="$compStructureOptions"
+                                    multiple searchable
+                                    select="label:label|value:value"
+                                    placeholder="Select one or more" />
+                            </div>
+                        @endif
+
+                        @if($this->ask('expected_base'))
+                            <div>
+                                <x-ts-input type="number" step="1000" label="Expected base (USD)" wire:model.live="expected_base" placeholder="e.g., 90000" />
+                                @error('expected_base') <x-ts-error :text="$message" /> @enderror
+                            </div>
+                        @endif
+
+                        @if($this->ask('expected_ote'))
+                            <div>
+                                <x-ts-input type="number" step="1000" label="Expected OTE (USD)" wire:model.live="expected_ote" placeholder="e.g., 180000" />
+                                @error('expected_ote') <x-ts-error :text="$message" /> @enderror
+                            </div>
+                        @endif
+
+                        @if($this->ask('cold_outreach_ok'))
+                            <div>
+                                <x-ts-select.styled
+                                    label="Comfortable with cold outreach"
+                                    wire:model.live="cold_outreach_ok"
+                                    :options="[['label'=>'Yes','value'=>true],['label'=>'No','value'=>false]]"
+                                    select="label:label|value:value"
+                                    placeholder="Select" />
+                                @error('cold_outreach_ok') <x-ts-error :text="$message" /> @enderror
+                            </div>
+                        @endif
+                    </div>
+                </x-ts-card>
+            @endif
+
+            {{-- Compliance (conditional) --}}
+            @if($this->asksAny(['work_auth','start_date','has_noncompete_conflict','background_check_ok']))
+                <x-ts-card class="p-5 ring-brand space-y-4">
+                    <h2 class="text-lg font-semibold">Compliance & logistics</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        @if($this->ask('work_auth'))
+                            <div>
+                                <x-ts-select.styled
+                                    label="U.S. work authorization"
+                                    wire:model.live="work_auth"
+                                    :options="$workAuthOptions"
+                                    select="label:label|value:value"
+                                    placeholder="Select" />
+                                @error('work_auth') <x-ts-error :text="$message" /> @enderror
+                            </div>
+                        @endif
+
+                        @if($this->ask('start_date'))
+                            <div>
+                                <x-ts-input type="date" label="Earliest start date" wire:model.live="start_date" />
+                                @error('start_date') <x-ts-error :text="$message" /> @enderror
+                            </div>
+                        @endif
+
+                        @if($this->ask('has_noncompete_conflict'))
+                            <div>
+                                <x-ts-select.styled
+                                    label="Active non-compete conflict"
+                                    wire:model.live="has_noncompete_conflict"
+                                    :options="[['label'=>'Yes','value'=>true],['label'=>'No','value'=>false]]"
+                                    select="label:label|value:value"
+                                    placeholder="Select" />
+                                @error('has_noncompete_conflict') <x-ts-error :text="$message" /> @enderror
+                            </div>
+                        @endif
+
+                        @if($this->ask('background_check_ok'))
+                            <div>
+                                <x-ts-select.styled
+                                    label="Background check OK"
+                                    wire:model.live="background_check_ok"
+                                    :options="[['label'=>'Yes','value'=>true],['label'=>'No','value'=>false]]"
+                                    select="label:label|value:value"
+                                    placeholder="Select" />
+                                @error('background_check_ok') <x-ts-error :text="$message" /> @enderror
+                            </div>
+                        @endif
+                    </div>
+                </x-ts-card>
+            @endif
+
+            {{-- Cover letter & CV (always) --}}
+            <x-ts-card class="p-5 ring-brand space-y-4">
+                <h2 class="text-lg font-semibold">Cover letter & CV</h2>
+                <div class="grid grid-cols-1 gap-4">
+                    <div>
+                        <x-ts-textarea
+                            label="Cover letter (optional)"
+                            rows="6"
+                            wire:model.live="cover_letter"
+                            placeholder="Tell us briefly why you're a great fit…" />
+                        @error('cover_letter') <x-ts-error :text="$message" /> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">CV (PDF/DOC, up to 10MB)</label>
+                        <input type="file" wire:model="cv" accept=".pdf,.doc,.docx" class="block w-full text-sm">
+                        @error('cv') <x-ts-error :text="$message" /> @enderror
+                        <div wire:loading wire:target="cv" class="text-xs text-slate-500 mt-1">Uploading…</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end">
+                    <x-ts-button class="btn-accent" wire:click="submit">
+                        Submit application
+                    </x-ts-button>
                 </div>
             </x-ts-card>
-
-        @else
-            {{-- Application form --}}
-            <x-ts-card class="p-6 ring-brand bg-white/95 space-y-5">
-                @if($opening->roleplay_policy !== 'disabled')
-                    <x-ts-banner class="mb-1">
-                        This opening uses a roleplay evaluation
-                        <strong>({{ $opening->roleplay_policy }})</strong>.
-                        @if($opening->roleplay_pass_threshold)
-                            Target score: <strong>{{ number_format($opening->roleplay_pass_threshold, 2) }}</strong>.
-                        @endif
-                    </x-ts-banner>
-                @endif
-
-                <form wire:submit.prevent="submit" class="space-y-5">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="md:col-span-2">
-                            <x-ts-input
-                                label="Full name"
-                                wire:model.live="candidate_name"
-                                placeholder="Jane Doe"
-                                autocomplete="name"
-                                required
-                            />
-                            @error('candidate_name') <x-ts-error :text="$message" /> @enderror
-                        </div>
-
-                        <div>
-                            <x-ts-input
-                                type="email"
-                                label="Email"
-                                wire:model.live="email"
-                                placeholder="jane.doe@gmail.com"
-                                autocomplete="email"
-                                inputmode="email"
-                                required
-                            />
-                            @error('email') <x-ts-error :text="$message" /> @enderror
-                        </div>
-
-                        <div>
-                            <x-ts-input
-                                label="Mobile (US)"
-                                wire:model.live="phone"
-                                placeholder="(415) 555-0137"
-                                autocomplete="tel"
-                                inputmode="tel"
-                                pattern="^(\+1\s?)?(\(?\d{3}\)?[\s\.-]?)\d{3}[\s\.-]?\d{4}$"
-                            />
-                            <p class="text-xs text-slate-500 mt-1">Format: (AAA) BBB-CCCC or 555-555-5555</p>
-                            @error('phone') <x-ts-error :text="$message" /> @enderror
-                        </div>
-
-                        <div class="md:col-span-2">
-                            <x-ts-input
-                                label="Location"
-                                wire:model.live="location"
-                                placeholder="Austin, TX (USA)"
-                                autocomplete="address-level2"
-                            />
-                            <p class="text-xs text-slate-500 mt-1">Example: “Austin, TX” or “Remote, USA”.</p>
-                            @error('location') <x-ts-error :text="$message" /> @enderror
-                        </div>
-
-                        <div class="md:col-span-2">
-                            <x-ts-textarea
-                                label="Cover letter (optional)"
-                                rows="6"
-                                wire:model.live="cover_letter"
-                                placeholder="Briefly highlight your US market experience, specialties, and availability (e.g., ortho/spine coverage across the Southwest; open to W-2 or 1099)."
-                            />
-                            @error('cover_letter') <x-ts-error :text="$message" /> @enderror
-                        </div>
-
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Resume (PDF/DOC, up to 10MB)</label>
-                            <input type="file" wire:model="cv" accept=".pdf,.doc,.docx" class="block w-full text-sm">
-                            @error('cv') <x-ts-error :text="$message" /> @enderror
-                            <div wire:loading wire:target="cv" class="text-xs text-slate-500 mt-1">Uploading…</div>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-end gap-2">
-                        <a href="{{ route('openings.show', $opening->slug) }}" class="btn-brand outline text-sm">
-                            Cancel
-                        </a>
-                        <x-ts-button type="submit" class="btn-accent text-sm" wire:loading.attr="disabled">
-                            Submit application
-                        </x-ts-button>
-                    </div>
-                </form>
-            </x-ts-card>
         @endif
-    </div>
 
-</div> {{-- /SINGLE ROOT WRAPPER --}}
+    </div>
+</div>

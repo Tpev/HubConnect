@@ -20,7 +20,8 @@ class Team extends JetstreamTeam
      */
     protected $fillable = [
         'name',
-        'personal_team',
+        'personal_team','hq_country','website','official_email_domain','company_type','registration_number','linkedin_url',
+    'kyc_status','kyc_submitted_at','kyc_verified_at','kyc_reviewer_user_id','kyc_notes',
     ];
 
     /**
@@ -43,11 +44,24 @@ class Team extends JetstreamTeam
     {
         return [
             'personal_team' => 'boolean',
+			    'kyc_submitted_at' => 'datetime',
+    'kyc_verified_at'  => 'datetime',
         ];
     }
 	public function hasActiveLicense(): bool
 {
     return (bool) $this->license_active;
 }
-
+// Tiny helpers
+public function isKycApproved(): bool { return $this->kyc_status === 'approved'; }
+public function isKycPending(): bool { return in_array($this->kyc_status, ['new','pending_review']); }
+public function kycStatusLabel(): string {
+    return match ($this->kyc_status) {
+        'approved' => 'Approved',
+        'pending_review','new' => 'Pending review',
+        'rejected' => 'Rejected',
+        'suspended' => 'Suspended',
+        default => ucfirst($this->kyc_status ?? 'Unknown'),
+    };
+}
 }

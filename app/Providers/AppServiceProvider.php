@@ -4,22 +4,22 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
+// ❌ Do NOT import/ use Laravel\Jetstream\Jetstream here
+
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-           View::prependNamespace('tallstackui', resource_path('views/vendor/tallstackui'));
-    View::prependNamespace('tallstack-ui', resource_path('views/vendor/tallstack-ui'));
+        // TallStack UI view namespaces (keep if you published views)
+        View::prependNamespace('tallstackui', resource_path('views/vendor/tallstackui'));
+        View::prependNamespace('tallstack-ui', resource_path('views/vendor/tallstack-ui'));
+
+        // ❌ Remove this line (it caused the pivot mismatch):
+        // Jetstream::useTeamModel(\App\Models\Company::class);
     }
 }
