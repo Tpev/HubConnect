@@ -7,6 +7,7 @@
             <p class="mt-1 text-sm text-slate-500">Overview of your HubConnect instance.</p>
         </div>
         <div class="hidden md:flex items-center gap-2">
+            <ts-button href="{{ route('admin.kyc.index') }}" variant="solid" color="warning">KYC Admin</ts-button>
             <ts-button href="{{ route('admin.users.index') }}" variant="soft">Manage Users</ts-button>
             <ts-button href="{{ route('admin.companies.index') }}" variant="soft">Manage Companies</ts-button>
         </div>
@@ -16,7 +17,7 @@
 <div class="max-w-7xl mx-auto p-6 space-y-8">
 
     {{-- KPI cards --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {{-- Users --}}
         <ts-card class="overflow-hidden">
             <div class="h-1.5 bg-gradient-to-r from-emerald-500 to-emerald-300"></div>
@@ -27,7 +28,6 @@
                         <div class="mt-1 text-4xl font-bold text-slate-900">{{ $usersCount }}</div>
                     </div>
                     <div class="shrink-0 rounded-2xl p-3 bg-emerald-50 ring-1 ring-emerald-100">
-                        {{-- user icon --}}
                         <svg viewBox="0 0 24 24" class="h-6 w-6 text-emerald-600" fill="none" stroke="currentColor" stroke-width="1.8">
                             <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                             <circle cx="9" cy="7" r="4" />
@@ -52,7 +52,6 @@
                         <div class="mt-1 text-4xl font-bold text-slate-900">{{ $companiesCount }}</div>
                     </div>
                     <div class="shrink-0 rounded-2xl p-3 bg-sky-50 ring-1 ring-sky-100">
-                        {{-- building icon --}}
                         <svg viewBox="0 0 24 24" class="h-6 w-6 text-sky-600" fill="none" stroke="currentColor" stroke-width="1.8">
                             <path d="M3 21h18" />
                             <path d="M19 21V8a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2v15" />
@@ -78,7 +77,6 @@
                         <div class="mt-1 text-4xl font-bold text-slate-900">{{ $adminsCount }}</div>
                     </div>
                     <div class="shrink-0 rounded-2xl p-3 bg-violet-50 ring-1 ring-violet-100">
-                        {{-- shield icon --}}
                         <svg viewBox="0 0 24 24" class="h-6 w-6 text-violet-600" fill="none" stroke="currentColor" stroke-width="1.8">
                             <path d="M12 22s8-4 8-10V6l-8-4-8 4v6c0 6 8 10 8 10z" />
                             <path d="M9 12l2 2 4-4" />
@@ -87,6 +85,53 @@
                 </div>
                 <div class="mt-4">
                     <ts-badge color="primary">Admin-only area</ts-badge>
+                </div>
+            </ts-card.content>
+        </ts-card>
+
+        {{-- KYC --}}
+        <ts-card class="overflow-hidden">
+            <div class="h-1.5 bg-gradient-to-r from-amber-500 to-orange-300"></div>
+            <ts-card.content class="p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-xs uppercase tracking-wide text-slate-500">KYC Submissions</div>
+                        <div class="mt-1 text-4xl font-bold text-slate-900">{{ $kycTotal ?? array_sum($kycCounts ?? []) }}</div>
+                    </div>
+                    <div class="shrink-0 rounded-2xl p-3 bg-amber-50 ring-1 ring-amber-100">
+                        <svg viewBox="0 0 24 24" class="h-6 w-6 text-amber-600" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path d="M12 22s8-4 8-10V6l-8-4-8 4v6c0 6 8 10 8 10z" />
+                            <path d="M9 12l2 2 4-4" />
+                        </svg>
+                    </div>
+                </div>
+
+                {{-- Breakdown --}}
+                <div class="mt-4 grid grid-cols-2 gap-2 text-xs">
+                    <a href="{{ route('admin.kyc.index', ['status' => 'pending_review']) }}" class="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 hover:bg-amber-100">
+                        <span class="text-amber-900">Pending review</span>
+                        <span class="font-semibold">{{ $kycCounts['pending_review'] ?? 0 }}</span>
+                    </a>
+                    <a href="{{ route('admin.kyc.index', ['status' => 'new']) }}" class="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 hover:bg-slate-100">
+                        <span class="text-slate-700">New</span>
+                        <span class="font-semibold">{{ $kycCounts['new'] ?? 0 }}</span>
+                    </a>
+                    <a href="{{ route('admin.kyc.index', ['status' => 'approved']) }}" class="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 hover:bg-emerald-100">
+                        <span class="text-emerald-800">Approved</span>
+                        <span class="font-semibold">{{ $kycCounts['approved'] ?? 0 }}</span>
+                    </a>
+                    <a href="{{ route('admin.kyc.index', ['status' => 'rejected']) }}" class="flex items-center justify-between rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 hover:bg-rose-100">
+                        <span class="text-rose-800">Rejected</span>
+                        <span class="font-semibold">{{ $kycCounts['rejected'] ?? 0 }}</span>
+                    </a>
+                    <a href="{{ route('admin.kyc.index', ['status' => 'suspended']) }}" class="flex items-center justify-between rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 hover:bg-orange-100 col-span-2">
+                        <span class="text-orange-800">Suspended</span>
+                        <span class="font-semibold">{{ $kycCounts['suspended'] ?? 0 }}</span>
+                    </a>
+                </div>
+
+                <div class="mt-4">
+                    <ts-button href="{{ route('admin.kyc.index') }}" size="sm" variant="outline">Open KYC Admin</ts-button>
                 </div>
             </ts-card.content>
         </ts-card>
@@ -134,18 +179,88 @@
                         </div>
                     </a>
 
-                    <a href="{{ route('dashboard') }}" class="group">
-                        <div class="w-full rounded-xl border border-slate-200 p-4 hover:border-fuchsia-300 hover:shadow transition">
+                    {{-- KYC shortcuts --}}
+                    <a href="{{ route('admin.kyc.index') }}" class="group">
+                        <div class="w-full rounded-xl border border-amber-200 p-4 hover:border-amber-300 hover:shadow transition">
                             <div class="flex items-center gap-3">
-                                <div class="rounded-xl p-2 bg-fuchsia-50 ring-1 ring-fuchsia-100">
-                                    <svg viewBox="0 0 24 24" class="h-5 w-5 text-fuchsia-600" fill="none" stroke="currentColor" stroke-width="1.8">
-                                        <path d="M3 3h18v4H3zM3 11h18v10H3z" />
-                                        <path d="M7 7v4M12 7v4M17 7v4" />
+                                <div class="rounded-xl p-2 bg-amber-50 ring-1 ring-amber-100">
+                                    <svg viewBox="0 0 24 24" class="h-5 w-5 text-amber-600" fill="none" stroke="currentColor" stroke-width="1.8">
+                                        <path d="M12 22s8-4 8-10V6l-8-4-8 4v6c0 6 8 10 8 10z" />
                                     </svg>
                                 </div>
                                 <div>
-                                    <div class="font-medium text-slate-900">Go to App</div>
-                                    <div class="text-xs text-slate-500">Back to the main application.</div>
+                                    <div class="font-medium text-slate-900">Review KYC</div>
+                                    <div class="text-xs text-slate-500">Open the KYC admin dashboard.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="{{ route('admin.kyc.index', ['status' => 'pending_review']) }}" class="group">
+                        <div class="w-full rounded-xl border border-amber-200 p-4 hover:border-amber-300 hover:shadow transition">
+                            <div class="flex items-center gap-3">
+                                <div class="rounded-xl p-2 bg-amber-50 ring-1 ring-amber-100">
+                                    <span class="text-xs font-semibold text-amber-700">{{ $kycCounts['pending_review'] ?? 0 }}</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-slate-900">KYC Pending</div>
+                                    <div class="text-xs text-slate-500">Needs manual review.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="{{ route('admin.kyc.index', ['status' => 'new']) }}" class="group">
+                        <div class="w-full rounded-xl border border-slate-200 p-4 hover:border-slate-300 hover:shadow transition">
+                            <div class="flex items-center gap-3">
+                                <div class="rounded-xl p-2 bg-slate-50 ring-1 ring-slate-200">
+                                    <span class="text-xs font-semibold text-slate-700">{{ $kycCounts['new'] ?? 0 }}</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-slate-900">KYC New</div>
+                                    <div class="text-xs text-slate-500">Recently submitted.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="{{ route('admin.kyc.index', ['status' => 'approved']) }}" class="group">
+                        <div class="w-full rounded-xl border border-emerald-200 p-4 hover:border-emerald-300 hover:shadow transition">
+                            <div class="flex items-center gap-3">
+                                <div class="rounded-xl p-2 bg-emerald-50 ring-1 ring-emerald-200">
+                                    <span class="text-xs font-semibold text-emerald-700">{{ $kycCounts['approved'] ?? 0 }}</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-slate-900">KYC Approved</div>
+                                    <div class="text-xs text-slate-500">Verified teams.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="{{ route('admin.kyc.index', ['status' => 'rejected']) }}" class="group">
+                        <div class="w-full rounded-xl border border-rose-200 p-4 hover:border-rose-300 hover:shadow transition">
+                            <div class="flex items-center gap-3">
+                                <div class="rounded-xl p-2 bg-rose-50 ring-1 ring-rose-200">
+                                    <span class="text-xs font-semibold text-rose-700">{{ $kycCounts['rejected'] ?? 0 }}</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-slate-900">KYC Rejected</div>
+                                    <div class="text-xs text-slate-500">With reasons.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="{{ route('admin.kyc.index', ['status' => 'suspended']) }}" class="group">
+                        <div class="w-full rounded-xl border border-orange-200 p-4 hover:border-orange-300 hover:shadow transition">
+                            <div class="flex items-center gap-3">
+                                <div class="rounded-xl p-2 bg-orange-50 ring-1 ring-orange-200">
+                                    <span class="text-xs font-semibold text-orange-700">{{ $kycCounts['suspended'] ?? 0 }}</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-slate-900">KYC Suspended</div>
+                                    <div class="text-xs text-slate-500">Temporarily disabled.</div>
                                 </div>
                             </div>
                         </div>
@@ -162,7 +277,10 @@
 php artisan tinker
 &gt;&gt;&gt; App\Models\User::where('email','test@test.com')->update(['is_admin' =&gt; true]);
                 </pre>
-                <p class="text-slate-500">Use the Users page to verify email status and team membership. Companies page shows team metadata and members.</p>
+                <p class="text-slate-500">
+                    KYC Admin lives at <code>/admin/kyc</code> (route <code>admin.kyc.index</code>).
+                    Use the status filter to jump directly via the Quick Actions above.
+                </p>
             </ts-card.content>
         </ts-card>
     </div>
