@@ -14,21 +14,7 @@
         <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white shadow sm:rounded-2xl p-6">
 
-                {{-- Info: how to access KYC Admin --}}
-                <div class="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
-                    <div class="font-medium mb-1">Access to KYC Admin</div>
-                    <p class="text-sm leading-6">
-                        The KYC admin dashboard is available at
-                        <code class="px-1 py-0.5 rounded bg-white border border-amber-200">/admin/kyc</code>
-                        (route:
-                        <code class="px-1 py-0.5 rounded bg-white border border-amber-200">admin.kyc.index</code>).
-                        Make sure the user has <code>is_admin = true</code> (or passes your admin middleware/gate).
-                        Common routes used here:
-                        <code class="px-1 py-0.5 rounded bg-white border border-amber-200">admin.kyc.show</code>,
-                        <code class="px-1 py-0.5 rounded bg-white border border-amber-200">admin.kyc.approve</code>,
-                        <code class="px-1 py-0.5 rounded bg-white border border-amber-200">admin.kyc.reject</code>.
-                    </p>
-                </div>
+
 
                 <form method="GET" class="mb-4">
                     <label class="text-sm text-gray-600 me-2">Status</label>
