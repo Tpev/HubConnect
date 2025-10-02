@@ -183,7 +183,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 | Marketing / Landing
 |--------------------------------------------------------------------------
 */
+// Marketing / Landing
 Route::view('/', 'landing')->name('landing');
+Route::view('/how-it-works', 'how-it-works')->name('how-it-works');
+Route::view('/pricing', 'pricing')->name('pricing');
 Route::view('/manufacturers', 'public.manufacturers')->name('manufacturers');
 Route::view('/reps', 'public.reps')->name('reps');
 Route::view('/about', 'public.about')->name('about');
