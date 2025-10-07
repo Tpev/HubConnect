@@ -8,6 +8,7 @@ use App\Models\CompanyConnection;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use App\Models\DealRoom; 
 
 class Index extends Component
 {
@@ -71,16 +72,25 @@ class Index extends Component
         session()->flash('msg', 'Request sent.');
     }
 
-    public function accept(int $requestId): void
-    {
-        $req = MatchRequest::findOrFail($requestId);
-        abort_unless($req->to_company_id === $this->company->id, 403);
+public function accept(int $requestId)
+{
+    $req = MatchRequest::findOrFail($requestId);
+    abort_unless($req->to_company_id === $this->company->id, 403);
 
-        $req->update(['status' => 'accepted']);
-        CompanyConnection::connectPair($req->from_company_id, $req->to_company_id);
+    // Accept + connect
+    $req->update(['status' => 'accepted']);
+    CompanyConnection::connectPair($req->from_company_id, $req->to_company_id);
 
-        session()->flash('msg', 'Request accepted. Connection created.');
-    }
+    // Ensure/find the deal room for this pair and redirect to it
+    $room = DealRoom::forPair(
+        $req->from_company_id,
+        $req->to_company_id,
+        $this->company->id // created_by_company_id (the acceptor)
+    );
+
+    return redirect()->route('deal-rooms.show', $room);
+}
+
 
     public function decline(int $requestId): void
     {
@@ -91,22 +101,22 @@ class Index extends Component
         session()->flash('msg', 'Request declined.');
     }
 
-    public function render()
-    {
-        $companyId = $this->company->id;
+		public function render()
+		{
+			$companyId = $this->company->id;
 
-        $received = MatchRequest::with('fromCompany')
-            ->where('to_company_id', $companyId)
-            ->latest()
-            ->get();
+			$received = MatchRequest::with('fromCompany')
+				->where('to_company_id', $companyId)
+				->latest()
+				->get();
 
-        $sent = MatchRequest::with('toCompany')
-            ->where('from_company_id', $companyId)
-            ->latest()
-            ->get();
+			$sent = MatchRequest::with('toCompany')
+				->where('from_company_id', $companyId)
+				->latest()
+				->get();
 
-        return view('livewire.requests.index', compact('received', 'sent'))
-            ->title('Requests')
-            ->layout('layouts.app');
-    }
+			
+			return view('livewire.requests.index', compact('received', 'sent'));
+		}
+
 }

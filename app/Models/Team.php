@@ -21,7 +21,7 @@ class Team extends JetstreamTeam
     protected $fillable = [
         'name',
         'personal_team','hq_country','website','official_email_domain','company_type','registration_number','linkedin_url',
-    'kyc_status','kyc_submitted_at','kyc_verified_at','kyc_reviewer_user_id','kyc_notes',
+    'kyc_status','kyc_submitted_at','kyc_verified_at','kyc_reviewer_user_id','kyc_notes','is_listed',
     ];
 
     /**
@@ -46,6 +46,7 @@ class Team extends JetstreamTeam
             'personal_team' => 'boolean',
 			    'kyc_submitted_at' => 'datetime',
     'kyc_verified_at'  => 'datetime',
+	'is_listed' => 'boolean',
         ];
     }
 	public function hasActiveLicense(): bool
@@ -64,4 +65,7 @@ public function kycStatusLabel(): string {
         default => ucfirst($this->kyc_status ?? 'Unknown'),
     };
 }
+
+
+
 }

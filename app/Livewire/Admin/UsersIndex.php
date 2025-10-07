@@ -6,6 +6,7 @@ use App\Models\User;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Models\Team;
 
 class UsersIndex extends Component
 {

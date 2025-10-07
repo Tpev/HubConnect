@@ -87,6 +87,10 @@
                                 <th class="px-4 py-3">Company</th>
                                 <th class="px-4 py-3">Type</th>
                                 <th class="px-4 py-3">Country</th>
+
+                                {{-- NEW: Listed --}}
+                                <th class="px-4 py-3 text-center w-28">Listed</th>
+
                                 <th class="px-4 py-3 text-center w-28">Members</th>
                                 <th class="px-4 py-3 w-28"></th>
                             </tr>
@@ -124,6 +128,30 @@
                                         @else
                                             <span class="text-slate-500">—</span>
                                         @endif
+                                    </td>
+
+                                    {{-- NEW: Listed toggle --}}
+                                    <td class="px-4 py-3 text-center">
+                                        <button
+                                            type="button"
+                                            wire:click="toggleListed({{ $c->id }})"
+                                            wire:loading.attr="disabled"
+                                            aria-pressed="{{ $c->is_listed ? 'true' : 'false' }}"
+                                            class="inline-flex items-center gap-2 group focus:outline-none"
+                                            title="{{ $c->is_listed ? 'Visible in directory' : 'Hidden from directory' }}"
+                                        >
+                                            <span
+                                                class="relative inline-flex h-5 w-9 rounded-full transition-colors duration-200 ease-out ring-1 ring-slate-200
+                                                       {{ $c->is_listed ? 'bg-emerald-500/90' : 'bg-slate-300' }}">
+                                                <span
+                                                    class="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ease-out
+                                                           {{ $c->is_listed ? 'translate-x-4' : 'translate-x-0' }}">
+                                                </span>
+                                            </span>
+                                            <span class="text-xs {{ $c->is_listed ? 'text-slate-700' : 'text-slate-500' }}">
+                                                {{ $c->is_listed ? 'Visible' : 'Hidden' }}
+                                            </span>
+                                        </button>
                                     </td>
 
                                     <td class="px-4 py-3 text-center">

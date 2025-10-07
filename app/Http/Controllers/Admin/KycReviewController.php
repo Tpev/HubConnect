@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/Admin/KycReviewController.php
 
 namespace App\Http\Controllers\Admin;
 
@@ -24,6 +25,11 @@ class KycReviewController extends Controller
 
         $teams = Team::query()
             ->when($status, fn($q) => $q->where('kyc_status', $status))
+            ->with([
+                'owner:id,name,email',
+                'users:id,name,email',
+            ])
+            ->withCount('users')
             ->orderByDesc('kyc_submitted_at')
             ->paginate(20);
 

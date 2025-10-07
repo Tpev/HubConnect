@@ -3,10 +3,11 @@
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
         <div class="grid gap-8 sm:gap-10 md:grid-cols-3">
             <div>
-                <div class="flex items-center gap-2">
-                    <div class="h-7 w-7 rounded-lg bg-gradient-to-br from-emerald-500 to-orange-500 ring-1 ring-emerald-200/60"></div>
+                <a href="{{ route('landing') }}" class="flex items-center gap-2">
+                    {{-- Same logo component as the navbar --}}
+                    <x-application-mark class="block h-7 w-auto" />
                     <span class="text-sm font-semibold text-slate-900">HubConnect</span>
-                </div>
+                </a>
                 <p class="mt-3 text-sm text-slate-600">
                     Matchmaking, targeting & deal rooms for medical device manufacturers and healthcare distributors.
                 </p>
@@ -18,6 +19,9 @@
                     <li><a href="{{ route('pricing') }}" class="text-slate-600 hover:text-emerald-700">Pricing</a></li>
                     <li><a href="{{ route('contact') }}" class="text-slate-600 hover:text-emerald-700">Contact</a></li>
                     <li><a href="{{ route('security') }}" class="text-slate-600 hover:text-emerald-700">Security</a></li>
+                    @if(Route::has('openings.index'))
+                        <li><a href="{{ route('openings.index') }}" class="text-slate-600 hover:text-emerald-700">Jobs Board</a></li>
+                    @endif
                 </ul>
             </div>
 

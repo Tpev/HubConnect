@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
-
+use App\Models\Team;
 class CompaniesIndex extends Component
 {
     use WithPagination;
@@ -25,6 +25,7 @@ class CompaniesIndex extends Component
     {
         $base = Company::query()
             ->select('teams.*') // Company extends Team (table = teams)
+			
             ->selectSub(
                 DB::table('team_user')
                     ->selectRaw('count(*)')
@@ -44,7 +45,12 @@ class CompaniesIndex extends Component
 
         return $base->orderBy('name');
     }
-
+public function toggleListed(int $companyId): void
+{
+    $company = Team::findOrFail($companyId);
+    $company->update(['is_listed' => ! (bool) $company->is_listed]);
+    // optional: $this->dispatch('toast', body: 'Visibility updated.');
+}
     public function render()
     {
         $companies = $this->query()->paginate($this->perPage);

@@ -41,6 +41,7 @@ class Index extends Component
             ->with(['specialties:id,name', 'certifications:id,name'])
             ->select('teams.*')
             ->selectSub($intentUpdatedAt, 'intent_updated_at')
+			->where('is_listed', true)
 
             // Role filter
             ->when($this->role, function (Builder $q) {

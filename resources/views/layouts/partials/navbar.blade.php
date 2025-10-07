@@ -6,9 +6,8 @@
             <div class="flex h-16 items-center justify-between">
                 {{-- Brand --}}
                 <a href="{{ route('landing') }}" class="flex items-center gap-3">
-                    {{-- Solid brand mark (no gradient) --}}
-                    <div class="h-9 w-9 rounded-xl ring-brand"
-                         style="background:var(--brand-600)"></div>
+                    {{-- Same logo as the app navbar --}}
+                    <x-application-mark class="block h-9 w-auto" />
                     <span class="text-lg font-semibold tracking-tight" style="color:var(--ink)">HubConnect</span>
                 </a>
 
@@ -20,6 +19,11 @@
                     <a href="{{ route('how-it-works') }}" class="text-slate-600 hover:text-[color:var(--brand-700)]">
                         How it works
                     </a>
+                    @if(Route::has('openings.index'))
+                        <a href="{{ route('openings.index') }}" class="text-slate-600 hover:text-[color:var(--brand-700)]">
+                            Jobs Board
+                        </a>
+                    @endif
                     <a href="{{ route('pricing') }}" class="text-slate-600 hover:text-[color:var(--brand-700)]">
                         Pricing
                     </a>
@@ -41,7 +45,6 @@
                     class="md:hidden inline-flex items-center justify-center rounded-lg p-2 hover:bg-[var(--brand-50)] ring-1 ring-transparent hover:ring-[var(--brand-200)]"
                     aria-label="Open menu"
                 >
-                    {{-- Safer icon usage: simple bars via TallStack alias or replace with text if needed --}}
                     <x-ts-icon name="bars-3" class="h-6 w-6 text-slate-700"/>
                 </button>
             </div>
@@ -57,6 +60,11 @@
                 <a href="{{ route('how-it-works') }}" class="block rounded-lg px-3 py-2 text-slate-700 hover:bg-[var(--brand-50)]">
                     How it works
                 </a>
+                @if(Route::has('openings.index'))
+                    <a href="{{ route('openings.index') }}" class="block rounded-lg px-3 py-2 text-slate-700 hover:bg-[var(--brand-50)]">
+                        Jobs Board
+                    </a>
+                @endif
                 <a href="{{ route('pricing') }}" class="block rounded-lg px-3 py-2 text-slate-700 hover:bg-[var(--brand-50)]">
                     Pricing
                 </a>
@@ -65,7 +73,6 @@
                     <x-ts-button as="a" href="{{ route('login') }}" class="flex-1 btn-accent outline">
                         Sign in
                     </x-ts-button>
-                    {{-- Avoid risky icon names; keep it clean --}}
                     <x-ts-button as="a" href="{{ route('register') }}" class="flex-1 btn-brand">
                         Start free
                     </x-ts-button>

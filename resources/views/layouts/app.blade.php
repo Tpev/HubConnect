@@ -52,5 +52,6 @@
         @livewireScripts
 		<x-ts-dialog />
 <x-ts-toast />
+@livewire('requests.panel')
     </body>
 </html>
