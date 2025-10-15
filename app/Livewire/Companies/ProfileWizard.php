@@ -2,15 +2,16 @@
 
 namespace App\Livewire\Companies;
 
+use App\Models\Certification;
 use App\Models\Company;
 use App\Models\Specialty;
-use App\Models\Certification;
-use Illuminate\Support\Str;
+use App\Notifications\KycSubmitted;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Illuminate\Support\Facades\Auth;
-use App\Notifications\KycSubmitted;
 
 class ProfileWizard extends Component
 {
@@ -33,14 +34,14 @@ class ProfileWizard extends Component
     public array $selectedCerts = [];
 
     /** @var \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null */
-    public $logo = null; // optional: if you want to let them update team_profile_photo_path
+    public $logo = null;
 
-    public function mount(Company $company)
+    public function mount(Company $company): void
     {
-        $this->authorize('update', $company);
+        Gate::authorize('update', $company);
         $this->company = $company;
 
-        // hydrate fields
+        // hydrate
         $this->name         = $company->name ?? '';
         $this->website      = $company->website;
         $this->hq_country   = $company->hq_country;
@@ -54,70 +55,92 @@ class ProfileWizard extends Component
         $this->selectedCerts       = $company->certifications()->pluck('certifications.id')->all();
     }
 
-public function saveBasic()
-{
-    $this->validate([
-        'name'          => ['required','string','max:255'],
-        'website'       => ['nullable','string','max:255'],
-        'company_type'  => ['required','in:manufacturer,distributor,both'],
-        'hq_country'    => ['required','string','max:120'],
-        'year_founded'  => ['nullable','integer','min:1800','max:'.now()->year],
-        'headcount'     => ['nullable','integer','min:1'],
-        'stage'         => ['nullable','in:startup,growth,established,global'],
-        'summary'       => ['nullable','string','max:5000'],
-        // keep your logo validation/handling here
-    ]);
+    public function saveBasic(): void
+    {
+        $this->validate([
+            'name'          => ['required','string','max:255'],
+            'website'       => ['nullable','string','max:255'],
+            'company_type'  => ['required','in:manufacturer,distributor,both'],
+            'hq_country'    => ['required','string','max:120'],
+            'year_founded'  => ['nullable','integer','min:1800','max:'.now()->year],
+            'headcount'     => ['nullable','integer','min:1'],
+            'stage'         => ['nullable','in:startup,growth,established,global'],
+            'summary'       => ['nullable','string','max:5000'],
+            'logo'          => ['nullable','image','mimes:jpg,jpeg,png,webp','max:2048'], // 2MB
+        ]);
 
-    $team = Auth::user()->currentTeam;
+        $team = Auth::user()->currentTeam;
 
-    // Persist basics to team (map your props)
-    $team->name         = $this->name;
-    $team->website      = $this->website;
-    $team->company_type = $this->company_type;
-    $team->hq_country   = $this->hq_country;
-    $team->year_founded = $this->year_founded ?: null; // if you have this column
-    $team->headcount    = $this->headcount ?: null;    // if you have this column
-    $team->stage        = $this->stage ?: null;        // if you have this column
-    $team->summary      = $this->summary ?: null;      // if you have this column
+        // Persist basics
+        $team->name         = $this->name;
+        $team->website      = $this->website;
+        $team->company_type = $this->company_type;
+        $team->hq_country   = $this->hq_country;
+        $team->year_founded = $this->year_founded ?: null;
+        $team->headcount    = $this->headcount ?: null;
+        $team->stage        = $this->stage ?: null;
+        $team->summary      = $this->summary ?: null;
 
-    // TODO: handle $this->logo upload the way you already do
+        // Handle logo upload (optional)
+        if ($this->logo) {
+            $old = $team->team_profile_photo_path;
 
-    $team->save();
+            // Store publicly on the "public" disk
+            $path = $this->logo->storePublicly('company-logos', 'public');
 
-    // If not approved and basics complete, move to pending_review (once)
-    $basicsComplete = filled($team->name) && filled($team->company_type) && filled($team->hq_country);
-    $justSubmitted = false;
+            $team->team_profile_photo_path = $path;
 
-    if ($basicsComplete && in_array($team->kyc_status, ['new','rejected'])) {
-        $team->kyc_status = 'pending_review';
-        $team->kyc_submitted_at = now();
-        $team->kyc_notes = null;
+            // Clean up old file (if any)
+            if ($old && Storage::disk('public')->exists($old)) {
+                Storage::disk('public')->delete($old);
+            }
+        }
+
         $team->save();
 
-        Auth::user()->notify(new KycSubmitted($team));
-        $justSubmitted = true;
+        // Submit for KYC review if basics complete & status allows
+        $basicsComplete = filled($team->name) && filled($team->company_type) && filled($team->hq_country);
+        $justSubmitted = false;
+
+        if ($basicsComplete && in_array($team->kyc_status, ['new','rejected'])) {
+            $team->kyc_status = 'pending_review';
+            $team->kyc_submitted_at = now();
+            $team->kyc_notes = null;
+            $team->save();
+
+            Auth::user()->notify(new KycSubmitted($team));
+            $justSubmitted = true;
+        }
+
+        // clear tmp logo field so the file input resets
+        $this->logo = null;
+
+        // Flash + toast
+        session()->flash('saved', $justSubmitted
+            ? 'Saved. Your company has been submitted for manual verification.'
+            : 'Saved.');
+
+        $this->dispatch('toast', message: session('saved'));
     }
 
-    session()->flash('saved', $justSubmitted
-        ? 'Saved. Your company has been submitted for manual verification.'
-        : 'Saved.');
-}
-    public function saveSpecialties()
+    public function saveSpecialties(): void
     {
         $ids = array_values(array_filter($this->selectedSpecialties));
         $this->company->specialties()->sync($ids);
+
         session()->flash('saved', 'Specialties updated.');
+        $this->dispatch('toast', message: session('saved'));
     }
 
-    public function saveCertifications()
+    public function saveCertifications(): void
     {
         $ids = array_values(array_filter($this->selectedCerts));
         $syncData = [];
-        foreach ($ids as $id) {
-            $syncData[$id] = []; // room for verified_at later
-        }
+        foreach ($ids as $id) { $syncData[$id] = []; }
         $this->company->certifications()->sync($syncData);
+
         session()->flash('saved', 'Certifications updated.');
+        $this->dispatch('toast', message: session('saved'));
     }
 
     public function render()

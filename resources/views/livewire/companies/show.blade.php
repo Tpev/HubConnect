@@ -1,6 +1,6 @@
-{{-- Company Show --}}
+{{-- Company Show (refined) --}}
 <div class="max-w-5xl mx-auto space-y-6" wire:init>
-    {{-- Skeleton while loading --}}
+    {{-- Loading skeleton --}}
     <div wire:loading.delay>
         <div class="rounded-2xl ring-1 ring-slate-200 bg-white p-5 animate-pulse">
             <div class="flex items-start gap-4">
@@ -20,149 +20,257 @@
         <x-ts-alert color="green" class="ring-brand">{{ session('msg') }}</x-ts-alert>
     @endif
 
-    {{-- Header / Overview --}}
-    <x-ts-card class="ring-brand">
-        <div class="flex items-start gap-4">
+    @php
+        $websiteHost = $company->website ? (parse_url($company->website, PHP_URL_HOST) ?: $company->website) : null;
+        $hq          = method_exists($company, 'getHqCountryLabelAttribute') ? $company->hq_country_label : ($company->hq_country ?: null);
+        $intent      = isset($intent) ? $intent : $company->activeIntent();
+    @endphp
+
+    {{-- Header / Overview (no green bg, just the accent line) --}}
+    <x-ts-card class="relative ring-brand overflow-hidden">
+        <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-600 to-emerald-400"></div>
+
+        <div class="p-5 flex items-start gap-4">
+            {{-- Logo / Initial --}}
             @if ($company->team_profile_photo_path)
-                <img src="{{ Storage::url($company->team_profile_photo_path) }}"
-                     class="w-16 h-16 rounded-xl object-cover"
-                     alt="{{ $company->name }}">
+                <img
+                    src="{{ Storage::url($company->team_profile_photo_path) }}"
+                    class="w-16 h-16 rounded-xl object-cover ring-1 ring-slate-200"
+                    alt="{{ $company->name }}"
+                >
             @else
-                <div class="w-16 h-16 rounded-xl bg-slate-200 grid place-items-center text-xl font-semibold">
+                <div class="w-16 h-16 rounded-xl bg-slate-100 grid place-items-center text-xl font-semibold ring-1 ring-slate-200 text-slate-600">
                     {{ \Illuminate\Support\Str::of($company->name)->substr(0,1) }}
                 </div>
             @endif
 
-            <div class="min-w-0">
-                <div class="flex items-center gap-3">
-                    <h1 class="text-xl font-semibold truncate">{{ $company->name }}</h1>
+            <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                    <h1 class="text-xl md:text-2xl font-semibold truncate text-slate-900">{{ $company->name }}</h1>
                     @if($company->company_type)
-                        <span class="badge-brand">{{ ucfirst($company->company_type) }}</span>
+                        <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800 ring-1 ring-emerald-200">
+                            {{ ucfirst($company->company_type) }}
+                        </span>
                     @endif
 
-                    {{-- Status chips --}}
-                    @php
-                        $viewerId = auth()->user()?->currentTeam?->id;
-                    @endphp
+                    {{-- Connection state --}}
+                    @php $viewerId = auth()->user()?->currentTeam?->id; @endphp
                     @if($viewerId && $viewerId !== $company->id)
                         @if($this->isConnected)
-                            <span class="chip-brand">Connected</span>
+                            <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 ring-1 ring-slate-200">Connected</span>
                         @elseif($this->hasPending)
-                            <span class="chip-accent">Request pending</span>
+                            <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 ring-1 ring-slate-200">Request pending</span>
                         @endif
                     @endif
                 </div>
 
-                <div class="text-sm text-slate-600">
-                    @if($company->website)
-                        <a href="{{ $company->website }}" target="_blank" class="hover:underline">
-                            {{ parse_url($company->website, PHP_URL_HOST) ?: $company->website }}
-                        </a> •
+                {{-- Meta row --}}
+                <div class="mt-1 text-xs md:text-sm text-slate-600 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    @if($websiteHost)
+                        <a href="{{ $company->website }}" target="_blank" class="hover:underline">{{ $websiteHost }}</a>
                     @endif
-                    @if($company->hq_country) HQ: {{ $company->hq_country }} @endif
-                    @if($company->year_founded) • Founded {{ $company->year_founded }} @endif
-                    @if($company->headcount) • {{ $company->headcount }} employees @endif
+                    @if($hq)
+                        <span>HQ: {{ $hq }}</span>
+                    @endif
+                    @if($company->year_founded)
+                        <span>Founded {{ $company->year_founded }}</span>
+                    @endif
+                    @if($company->headcount)
+                        <span>{{ number_format($company->headcount) }} employees</span>
+                    @endif
                 </div>
 
+                {{-- Specialties ribbon --}}
+                @if ($company->specialties->count())
+                    <div class="mt-3 flex flex-wrap items-center gap-2">
+                        @foreach ($company->specialties as $s)
+                            <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium
+                                         ring-1 ring-emerald-200 bg-emerald-50 text-emerald-800">
+                                <x-ts-icon name="sparkles" class="w-3.5 h-3.5 text-emerald-600" />
+                                {{ $s->name }}
+                            </span>
+                        @endforeach
+                    </div>
+                @endif
+
+                {{-- Summary --}}
                 @if($company->summary)
-                    <p class="mt-3 text-slate-700">{{ $company->summary }}</p>
+                    <p class="mt-3 text-slate-700 leading-relaxed">{{ $company->summary }}</p>
                 @endif
             </div>
 
-            <div class="ms-auto">
+            {{-- CTA --}}
+            <div class="ms-auto shrink-0">
                 @php $viewerTeam = auth()->user()?->currentTeam; @endphp
                 @if ($viewerTeam && $company->id !== $viewerTeam->id)
                     <button
-                        class="btn-brand {{ ($this->isConnected || $this->hasPending) ? 'outline cursor-not-allowed opacity-60' : '' }}"
+                        type="button"
+                        class="inline-flex items-center rounded-md bg-emerald-600 text-white hover:bg-emerald-700 px-3 py-2 text-sm font-semibold shadow-sm transition
+                               {{ ($this->isConnected || $this->hasPending) ? 'opacity-70 cursor-not-allowed' : '' }}"
                         @disabled($this->isConnected || $this->hasPending)
                         wire:click="$set('showCompose', true)"
-                        type="button"
                     >
                         {{ $this->isConnected ? 'Connected' : ($this->hasPending ? 'Request Pending' : 'Request Intro') }}
                     </button>
                 @else
-                    <a href="{{ route('companies.profile.edit', $company) }}" class="btn-accent outline">Edit Profile</a>
+                    <a href="{{ route('companies.profile.edit', $company) }}"
+                       class="inline-flex items-center rounded-md bg-white text-slate-700 hover:bg-slate-50 px-3 py-2 text-sm font-semibold ring-1 ring-slate-200 transition">
+                        Edit Profile
+                    </a>
                 @endif
             </div>
         </div>
     </x-ts-card>
 
-    {{-- Intent --}}
+    {{-- What they are looking for (Intent) --}}
     @if($intent)
-        @php $p = $intent->payload; @endphp
-        <x-ts-card class="ring-brand">
-            <x-slot name="header" class="font-semibold text-lg">🟢 Currently Looking For</x-slot>
-            <div class="space-y-2">
-                <div><span class="font-medium">Territories:</span> {{ collect($p['territories'] ?? [])->join(', ') ?: '—' }}</div>
-                <div><span class="font-medium">Specialties:</span>
-                    {{ \App\Models\Specialty::whereIn('id', $p['specialties'] ?? [])->pluck('name')->join(', ') ?: '—' }}
+        @php
+            $p = $intent->payload ?? [];
+            $countries  = config('countries', []);
+            $countryMap = collect($countries)->mapWithKeys(fn($c) => [$c['value'] => $c['label']]);
+
+            $territories = collect($p['territories'] ?? [])
+                ->map(fn($code) => $countryMap[$code] ?? $code)
+                ->values();
+
+            $specialtyNames = \App\Models\Specialty::whereIn('id', $p['specialties'] ?? [])->pluck('name');
+
+            $exclusivity = data_get($p, 'deal.exclusivity');
+            $consignment = data_get($p, 'deal.consignment');
+            $commission  = data_get($p, 'deal.commission_min');
+
+            $urgency  = trim((string)($p['urgency'] ?? ''));
+            $capacity = trim((string)($p['capacity_note'] ?? '')); // show full text (no cropping)
+        @endphp
+
+        <x-ts-card class="relative ring-brand overflow-hidden">
+            <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-600 to-emerald-400"></div>
+            <div class="p-5">
+                <div class="flex items-start justify-between gap-3">
+                    <h2 class="text-base md:text-lg font-semibold text-slate-900">What they are looking for</h2>
+                    <span class="text-[11px] text-slate-500">Updated {{ optional($intent->updated_at)->diffForHumans() }}</span>
                 </div>
-                <div>
-                    <span class="font-medium">Deal:</span>
-                    Exclusivity: {{ data_get($p,'deal.exclusivity')===true ? 'Yes' : (data_get($p,'deal.exclusivity')===false ? 'No' : 'No pref') }},
-                    Consignment: {{ data_get($p,'deal.consignment')===true ? 'Yes' : (data_get($p,'deal.consignment')===false ? 'No' : 'No pref') }},
-                    Min Comm: {{ data_get($p,'deal.commission_min') ? data_get($p,'deal.commission_min').'%' : '—' }}
+
+                {{-- Urgency prominent (if set) --}}
+                @if($urgency !== '')
+                    <div class="mt-1 text-sm font-medium text-emerald-800">
+                        {{ $urgency }}
+                    </div>
+                @endif
+
+                {{-- Full capacity/notes text (no label, no crop) --}}
+                @if($capacity !== '')
+                    <div class="mt-2 text-sm text-slate-700 whitespace-pre-line">
+                        {{ $capacity }}
+                    </div>
+                @endif
+
+                <div class="mt-4 grid gap-3 md:grid-cols-3">
+                    {{-- Territories --}}
+                    <div class="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3">
+                        <div class="text-xs font-medium text-slate-600 mb-1">Territories</div>
+                        <div class="flex flex-wrap gap-1.5">
+                            @forelse ($territories as $t)
+                                <span class="inline-flex rounded-full bg-white px-2 py-0.5 text-xs ring-1 ring-slate-200">{{ $t }}</span>
+                            @empty
+                                <span class="text-xs text-slate-400">—</span>
+                            @endforelse
+                        </div>
+                    </div>
+
+                    {{-- Specialties --}}
+                    <div class="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3">
+                        <div class="text-xs font-medium text-slate-600 mb-1">Specialties</div>
+                        <div class="flex flex-wrap gap-1.5">
+                            @forelse ($specialtyNames as $name)
+                                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs ring-1 ring-emerald-200 text-emerald-800">
+                                    <x-ts-icon name="sparkles" class="w-3.5 h-3.5 text-emerald-600" /> {{ $name }}
+                                </span>
+                            @empty
+                                <span class="text-xs text-slate-400">—</span>
+                            @endforelse
+                        </div>
+                    </div>
+
+                    {{-- Deal preferences --}}
+                    <div class="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3">
+                        <div class="text-xs font-medium text-slate-600 mb-1">Deal preferences</div>
+                        <ul class="text-xs text-slate-700 space-y-1.5">
+                            <li>
+                                <span class="font-medium">Exclusivity:</span>
+                                {{ $exclusivity === true ? 'Yes' : ($exclusivity === false ? 'No' : 'No preference') }}
+                            </li>
+                            <li>
+                                <span class="font-medium">Consignment:</span>
+                                {{ $consignment === true ? 'Yes' : ($consignment === false ? 'No' : 'No preference') }}
+                            </li>
+                            <li>
+                                <span class="font-medium">Min Commission:</span>
+                                {{ $commission ? $commission.'%' : '—' }}
+                            </li>
+                        </ul>
+                    </div>
                 </div>
-                <div class="text-xs text-slate-500">Updated {{ optional($intent->updated_at)->diffForHumans() }}</div>
             </div>
         </x-ts-card>
     @endif
 
-    {{-- Specialties & Certifications --}}
-    <div class="grid gap-4 sm:grid-cols-2">
-        <x-ts-card class="ring-brand">
-            <x-slot name="header" class="font-semibold">Specialties</x-slot>
-            <div class="flex flex-wrap gap-2">
-                @forelse ($company->specialties as $s)
-                    <span class="badge-brand">{{ $s->name }}</span>
-                @empty
-                    <x-ts-error title="No specialties provided." />
-                @endforelse
+    {{-- Quick facts (includes Certifications now) --}}
+    <x-ts-card class="relative ring-brand overflow-hidden">
+        <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-600 to-emerald-400"></div>
+        <x-slot name="header" class="font-semibold">Quick facts</x-slot>
+        @php
+            $certNames = $company->certifications->pluck('name');
+        @endphp
+        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+            <div>
+                <dt class="text-slate-500">Website</dt>
+                <dd class="text-slate-800">
+                    @if($websiteHost)
+                        <a class="hover:underline" href="{{ $company->website }}" target="_blank">{{ $websiteHost }}</a>
+                    @else
+                        —
+                    @endif
+                </dd>
             </div>
-        </x-ts-card>
-
-        <x-ts-card class="ring-brand">
-            <x-slot name="header" class="font-semibold">Certifications</x-slot>
-            <div class="flex flex-wrap gap-2">
-                @forelse ($company->certifications as $c)
-                    <span class="badge-accent">{{ $c->name }}</span>
-                @empty
-                    <x-ts-error title="No certifications listed." />
-                @endforelse
+            <div>
+                <dt class="text-slate-500">Headquarters</dt>
+                <dd class="text-slate-800">{{ $hq ?: '—' }}</dd>
             </div>
-        </x-ts-card>
-    </div>
-
-    {{-- Contacts --}}
-    <x-ts-card class="ring-brand">
-        <x-slot name="header" class="font-semibold">Contacts</x-slot>
-        @if ($this->canSeeContacts)
-            <div class="space-y-3">
-                @forelse ($company->contacts as $contact)
-                    <div>
-                        <div class="font-medium">
-                            {{ $contact->name }}
-                            @if($contact->title)
-                                <span class="text-xs text-slate-500">{{ $contact->title }}</span>
-                            @endif
+            <div>
+                <dt class="text-slate-500">Founded</dt>
+                <dd class="text-slate-800">{{ $company->year_founded ?: '—' }}</dd>
+            </div>
+            <div>
+                <dt class="text-slate-500">Employees</dt>
+                <dd class="text-slate-800">{{ $company->headcount ? number_format($company->headcount) : '—' }}</dd>
+            </div>
+            <div class="sm:col-span-2">
+                <dt class="text-slate-500">Certifications</dt>
+                <dd class="text-slate-800">
+                    @if($certNames->isNotEmpty())
+                        <div class="mt-1 flex flex-wrap gap-1.5">
+                            @foreach($certNames as $n)
+                                <span class="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs ring-1 ring-slate-200">
+                                    <x-ts-icon name="check-badge" class="w-4 h-4 text-emerald-600"/>
+                                    {{ $n }}
+                                </span>
+                            @endforeach
                         </div>
-                        @if($contact->email)<div class="text-sm">{{ $contact->email }}</div>@endif
-                        @if($contact->phone)<div class="text-sm">{{ $contact->phone }}</div>@endif
-                    </div>
-                @empty
-                    <x-ts-error title="No contacts added yet." />
-                @endforelse
+                    @else
+                        —
+                    @endif
+                </dd>
             </div>
-        @else
-            <x-ts-error title="Contacts are private." description="Request an intro to unlock contact details." />
-        @endif
+        </dl>
     </x-ts-card>
 
     {{-- Assets --}}
     @if($company->assets->count())
-        <x-ts-card class="ring-brand">
+        <x-ts-card class="relative ring-brand overflow-hidden">
+            <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-600 to-emerald-400"></div>
             <x-slot name="header" class="font-semibold">Assets</x-slot>
-            <ul class="list-disc ps-6 space-y-1">
+            <ul class="list-disc ps-6 space-y-1 text-slate-800">
                 @foreach ($company->assets as $a)
                     <li>
                         <a href="{{ $a->url }}" target="_blank" class="hover:underline">
@@ -187,8 +295,7 @@
     >
         <div class="fixed inset-0 bg-black/40" x-show="open" x-transition.opacity></div>
         <div class="fixed inset-0 flex items-start justify-center p-4 sm:p-8">
-            <div class="w-full max-w-2xl rounded-xl bg-white shadow-xl dark:bg-slate-800"
-                 x-show="open" x-transition x-on:click.outside="open=false">
+            <div class="w-full max-w-2xl rounded-xl bg-white shadow-xl" x-show="open" x-transition x-on:click.outside="open=false">
                 <div class="flex items-center justify-between border-b px-4 py-3">
                     <h3 id="compose-title" class="text-base font-semibold">Request Intro</h3>
                     <button type="button" class="p-1 text-slate-400 hover:text-slate-600" x-on:click="open=false">

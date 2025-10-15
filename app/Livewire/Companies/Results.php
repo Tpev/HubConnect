@@ -2,20 +2,20 @@
 
 namespace App\Livewire\Companies;
 
-use App\Models\Certification;
 use App\Models\Company;
 use App\Models\CompanyIntent;
-use App\Models\Specialty;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-class Index extends Component
+class Results extends Component
 {
     use WithPagination;
 
+    // Copy of filters (kept in sync via event), also URL-synced for shareability
     #[Url] public ?string $q = null;
     #[Url] public ?string $role = null;       // manufacturer|distributor|both
     #[Url] public ?string $territory = null;  // ISO code
@@ -26,15 +26,18 @@ class Index extends Component
 
     public function updating($name, $value) { $this->resetPage(); }
 
-    public function clearFilters(): void
+    #[On('companies:filters')]
+    public function syncFilters(array $filters): void
     {
-        $this->q = null;
-        $this->role = null;
-        $this->territory = null;
-        $this->specialty = null;
-        $this->cert = null;
-        $this->sort = 'recent';
-        $this->perPage = 12;
+        // update local props from SearchBar
+        $this->q         = $filters['q'] ?? null;
+        $this->role      = $filters['role'] ?? null;
+        $this->territory = $filters['territory'] ?? null;
+        $this->specialty = $filters['specialty'] ?? null;
+        $this->cert      = $filters['cert'] ?? null;
+        $this->sort      = in_array($filters['sort'] ?? 'recent', ['recent','name'], true) ? $filters['sort'] : 'recent';
+        $this->perPage   = in_array((int)($filters['perPage'] ?? 12), [12,24,48], true) ? (int)$filters['perPage'] : 12;
+
         $this->resetPage();
     }
 
@@ -54,11 +57,12 @@ class Index extends Component
             ->where('personal_team', 0);
 
         if ($this->role) {
-            $q->where(function (Builder $qq) {
-                if ($this->role === 'both') {
+            $role = $this->role;
+            $q->where(function (Builder $qq) use ($role) {
+                if ($role === 'both') {
                     $qq->where('company_type', 'both');
                 } else {
-                    $qq->whereIn('company_type', [$this->role, 'both']);
+                    $qq->whereIn('company_type', [$role, 'both']);
                 }
             });
         }
@@ -105,64 +109,15 @@ class Index extends Component
         return $q;
     }
 
-    protected function baseQueryWithoutRole(): Builder
-    {
-        $saved = $this->role;
-        $this->role = null;               // temporarily drop the role filter
-        $q = $this->baseQuery();          // build query without role
-        $this->role = $saved;             // restore
-        return $q;
-    }
-
-    protected function facetRoleCounts(): array
-    {
-        $q = $this->baseQueryWithoutRole();
-
-        $counts = [
-            'any'          => (clone $q)->count('teams.id'),
-            'manufacturer' => (clone $q)->whereIn('company_type', ['manufacturer', 'both'])->count('teams.id'),
-            'distributor'  => (clone $q)->whereIn('company_type', ['distributor', 'both'])->count('teams.id'),
-            'both'         => (clone $q)->where('company_type', 'both')->count('teams.id'),
-        ];
-
-        return $counts;
-    }
-
-    public function setSort(string $sort): void
-    {
-        $this->sort = in_array($sort, ['recent','name'], true) ? $sort : 'recent';
-        $this->resetPage();
-    }
-
-    public function setPerPage(int $n): void
-    {
-        $this->perPage = in_array($n, [12,24,48], true) ? $n : 12;
-        $this->resetPage();
-    }
-
     public function render()
     {
-        $countries = config('countries', []);
-
         $companies = $this->baseQuery()
             ->paginate($this->perPage)
             ->withQueryString();
 
-        $facet = $this->facetRoleCounts();
-
-        $stats = [
-            'matching'      => $companies->total(),
-            'activeIntents' => CompanyIntent::where('status','active')->distinct('company_id')->count('company_id'),
-            'totalListed'   => Company::where('is_listed', true)->where('personal_team',0)->count('id'),
-        ];
-
-        return view('livewire.companies.index', [
-            'companies'      => $companies,
-            'allSpecialties' => Specialty::orderBy('name')->get(['id','name']),
-            'allCerts'       => Certification::orderBy('name')->get(['id','name']),
-            'countries'      => $countries,
-            'facet'          => $facet,
-            'stats'          => $stats,
-        ])->title('Companies')->layout('layouts.app');
+        return view('livewire.companies.results', [
+            'companies' => $companies,
+            'countries' => config('countries', []),
+        ]);
     }
 }

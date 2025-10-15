@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class DealRoom extends Model
 {
@@ -117,5 +118,9 @@ class DealRoom extends Model
     {
         $other = $this->participantFor($this->otherCompanyId($myCompanyId) ?? 0);
         return $other && $other->last_typing_at && $other->last_typing_at->gt(now()->subSeconds(6));
+    }
+	    public function files(): HasMany
+    {
+        return $this->hasMany(DealRoomFile::class, 'room_id');
     }
 }
