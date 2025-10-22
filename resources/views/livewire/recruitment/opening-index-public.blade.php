@@ -81,7 +81,7 @@
                     />
                 </div>
 
-                {{-- NEW: Comp structure --}}
+                {{-- Comp structure --}}
                 <div class="lg:col-span-2">
                     <x-ts-select.styled
                         label="Comp structure"
@@ -92,7 +92,7 @@
                     />
                 </div>
 
-                {{-- NEW: Opening type --}}
+                {{-- Opening type --}}
                 <div class="lg:col-span-2">
                     <x-ts-select.styled
                         label="Opening type"
@@ -171,14 +171,24 @@
         <div wire:loading.delay.class="opacity-50"
              class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             @forelse ($openings as $o)
+                @php
+                    // mark if current user (individual) already applied
+                    $alreadyApplied = in_array($o->id, $appliedOpeningIds ?? [], true);
+                @endphp
+
                 <x-ts-card class="p-5 space-y-4 ring-brand bg-white/90 hover:shadow-md transition">
                     {{-- Top meta --}}
                     <div class="flex items-center justify-between">
                         <div class="text-xs font-semibold text-slate-500">{{ ucfirst($o->company_type) }}</div>
-                        @if($o->visibility_until)
-                            @php $days = \Carbon\Carbon::parse($o->visibility_until)->diffInDays(now()); @endphp
-                            <span class="chip-accent">{{ $days <= 14 ? 'Closing soon' : 'Open' }}</span>
-                        @endif
+                        <div class="flex items-center gap-2">
+                            @if($alreadyApplied)
+                                <span class="chip-brand bg-emerald-50 ring-emerald-200 text-emerald-800">Applied</span>
+                            @endif
+                            @if($o->visibility_until)
+                                @php $days = \Carbon\Carbon::parse($o->visibility_until)->diffInDays(now()); @endphp
+                                <span class="chip-accent">{{ $days <= 14 ? 'Closing soon' : 'Open' }}</span>
+                            @endif
+                        </div>
                     </div>
 
                     {{-- Title --}}
@@ -244,11 +254,28 @@
                         @endif
                     </div>
 
-                    <div class="pt-1">
+                    <div class="pt-1 flex items-center gap-2">
                         <a href="{{ route('openings.show', $o->slug) }}" class="btn-brand inline-flex items-center gap-2">
                             View details
                             <x-ts-icon name="arrow-right" />
                         </a>
+
+                        @auth
+                            @if($viewerType === 'individual' && Route::has('openings.apply'))
+                                @if(!$alreadyApplied)
+                                    <a href="{{ route('openings.apply', $o->slug) }}" class="btn-accent inline-flex items-center gap-2">
+                                        Apply
+                                    </a>
+                                @else
+                                    <button type="button" disabled
+                                        class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed"
+                                        title="You have already applied">
+                                        Applied
+                                        <x-ts-icon name="check" />
+                                    </button>
+                                @endif
+                            @endif
+                        @endauth
                     </div>
                 </x-ts-card>
             @empty

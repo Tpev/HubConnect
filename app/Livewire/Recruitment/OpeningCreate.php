@@ -3,8 +3,9 @@
 namespace App\Livewire\Recruitment;
 
 use App\Models\Opening;
-use Carbon\Carbon;
+use App\Models\OpeningLocation;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 
@@ -13,46 +14,52 @@ class OpeningCreate extends OpeningFormBase
 {
     public function mount(): void
     {
+        // Just ensure options are ready at first render; hydrate() keeps them fresh
         $this->loadOptions();
     }
 
     public function save(string $mode = 'stay'): void
     {
-        $this->validate();
+        $payload = $this->preparedForPersist();
 
+        // Team scope
         $teamId = Auth::user()?->currentTeam?->id;
+        if ($teamId) {
+            $payload['team_id'] = $teamId;
+        }
 
-        $opening = new Opening();
-        $opening->team_id          = $teamId;
-        $opening->slug             = Str::slug($this->title) . '-' . Str::random(6);
-        $opening->title            = $this->title;
-        $opening->description      = $this->description;
-        $opening->company_type     = $this->company_type;
-        $opening->status           = $this->status;
-        $opening->specialty_ids    = array_values($this->specialty_ids ?? []);
-        $opening->territory_ids    = array_values($this->territory_ids ?? []);
-        $opening->compensation     = $this->compensation;
-        $opening->visibility_until = $this->visibility_until ? Carbon::parse($this->visibility_until)->startOfDay() : null;
+        // Slug on create
+        $payload['slug'] = Str::slug($this->title) . '-' . Str::random(6);
 
-        $opening->comp_structure   = $this->comp_structure ?: null;
-        $opening->opening_type     = $this->opening_type   ?: null;
+        /** @var \App\Models\Opening $opening */
+        $opening = DB::transaction(function () use ($payload) {
+            $opening = Opening::create($payload);
 
-        $opening->roleplay_policy           = $this->roleplay_policy;
-        $opening->roleplay_scenario_pack_id = is_numeric($this->roleplay_scenario_pack_id) ? (int)$this->roleplay_scenario_pack_id : null;
-        $opening->roleplay_pass_threshold   = is_numeric($this->roleplay_pass_threshold) ? (float)$this->roleplay_pass_threshold : null;
+            // Persist related locations if you keep that table
+            OpeningLocation::where('opening_id', $opening->id)->delete();
+            foreach (($this->location_chips ?? []) as $chip) {
+                $type = $chip['type'] ?? null;
+                $id   = $chip['id']   ?? null;
+                if (!$type || !$id) continue;
 
-        $opening->screening_policy = $this->screening_policy ?: 'off';
-        $opening->screening_rules  = $this->normalizedScreeningRules();
+                OpeningLocation::create([
+                    'opening_id' => $opening->id,
+                    'entity_type'=> (string) $type,
+                    'entity_id'  => (int) $id,
+                ]);
+            }
 
-        $opening->save();
+            return $opening;
+        });
 
         $this->dispatch('toast', type: 'success', message: 'Opening created.');
 
         if ($mode === 'index') {
             $this->redirectRoute('employer.openings', navigate: true);
-        } else {
-            $this->redirectRoute('employer.openings.edit', ['opening' => $opening], navigate: true);
+            return;
         }
+
+        $this->redirectRoute('employer.openings.edit', ['opening' => $opening], navigate: true);
     }
 
     public function render()

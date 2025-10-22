@@ -31,7 +31,7 @@
             <div>
                 <x-ts-select.styled
                     label="Company Type"
-                    wire:model="company_type"
+                    wire:model.live="company_type"
                     :options="$companyTypeOptions"
                     select="label:label|value:value"
                     :clearable="false" />
@@ -41,7 +41,7 @@
             <div>
                 <x-ts-select.styled
                     label="Status"
-                    wire:model="status"
+                    wire:model.live="status"
                     :options="$statusOptions"
                     select="label:label|value:value"
                     :clearable="false" />
@@ -51,7 +51,7 @@
             <div>
                 <x-ts-select.styled
                     label="Specialties"
-                    wire:model="specialty_ids"
+                    wire:model.defer="specialty_ids"
                     :options="$specialtyOptions"
                     :multiple="true"
                     :searchable="true"
@@ -60,16 +60,17 @@
                 @error('specialty_ids') <x-ts-error :text="$message" /> @enderror
             </div>
 
-            <div>
-                <x-ts-select.styled
-                    label="Territories"
-                    wire:model="territory_ids"
-                    :options="$territoryOptions"
-                    :multiple="true"
-                    :searchable="true"
-                    select="label:label|value:value"
-                    placeholder="Select territories" />
-                @error('territory_ids') <x-ts-error :text="$message" /> @enderror
+            {{-- Location Omnibox --}}
+            <div class="md:col-span-2">
+                <livewire:geo.location-omnibox
+                    wire:model="location_chips"
+                    :value="$location_chips ?? []"
+                    :biasCountryIso2="auth()->user()?->currentTeam?->hq_country ?? config('geo.bias_country')"
+                />
+                <p class="mt-1 text-xs text-slate-500">
+                    Type any country, state/province, or city (e.g., <em>France</em>, <em>US-CA</em>, <em>Paris</em>). Select multiple if needed.
+                </p>
+                @error('location_chips') <x-ts-error :text="$message" /> @enderror
             </div>
 
             <div>
@@ -88,7 +89,7 @@
             <div>
                 <x-ts-select.styled
                     label="Comp structure"
-                    wire:model="comp_structure"
+                    wire:model.defer="comp_structure"
                     :options="$compStructureOptions"
                     select="label:label|value:value"
                     placeholder="Optional" />
@@ -98,7 +99,7 @@
             <div>
                 <x-ts-select.styled
                     label="Opening type"
-                    wire:model="opening_type"
+                    wire:model.defer="opening_type"
                     :options="$openingTypeOptions"
                     select="label:label|value:value"
                     placeholder="Optional" />
@@ -116,7 +117,7 @@
         </div>
     </x-ts-card>
 
-    {{-- ===== Roleplay (blurred / disabled with overlay) ===== --}}
+    {{-- ===== Roleplay (placeholder) ===== --}}
     <x-ts-card class="p-0 ring-brand overflow-hidden">
         <div class="relative">
             <fieldset disabled aria-disabled="true" class="pointer-events-none select-none">
@@ -127,7 +128,7 @@
                         <div>
                             <x-ts-select.styled
                                 label="Policy"
-                                wire:model="roleplay_policy"
+                                wire:model.defer="roleplay_policy"
                                 :options="$roleplayPolicyOptions"
                                 select="label:label|value:value"
                                 :clearable="false" />
@@ -137,7 +138,7 @@
                         <div>
                             <x-ts-select.styled
                                 label="Scenario Pack"
-                                wire:model="roleplay_scenario_pack_id"
+                                wire:model.defer="roleplay_scenario_pack_id"
                                 :options="$scenarioPackOptions"
                                 select="label:label|value:value"
                                 placeholder="Select pack (optional)" />
@@ -179,47 +180,14 @@
         </div>
     </x-ts-card>
 
-    {{-- ===== Deal-breaker criteria ===== --}}
-    <x-ts-card
-        class="p-5 space-y-5 ring-brand"
-        x-data="{
-            adding:false,
-            init() {
-                const wrap = this.$refs.rulesWrap;
-                if (!wrap) return;
-                const observer = new MutationObserver((mutations) => {
-                    if (!this.adding) return;
-                    for (const m of mutations) {
-                        if (m.type === 'childList' && m.addedNodes.length) {
-                            this.$nextTick(() => {
-                                const rows = wrap.querySelectorAll('.rule-row');
-                                const last = rows[rows.length - 1];
-                                if (last) {
-                                    last.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                    let focusable = last.querySelector('input, select, textarea, [tabindex]');
-                                    if (focusable && focusable.getAttribute && focusable.getAttribute('tabindex') === '-1') {
-                                        focusable = last.querySelector('input, select, textarea');
-                                    }
-                                    if (focusable && focusable.focus) {
-                                        focusable.focus({ preventScroll: true });
-                                    }
-                                }
-                                this.adding = false;
-                            });
-                            break;
-                        }
-                    }
-                });
-                observer.observe(wrap, { childList: true });
-            }
-        }"
-    >
+    {{-- ===== Deal-breaker criteria (table mode) ===== --}}
+    <x-ts-card class="p-5 space-y-4 ring-brand">
         <div class="flex items-center justify-between">
             <h2 class="text-lg font-semibold">Deal-breaker criteria</h2>
             <div class="w-64">
                 <x-ts-select.styled
                     label="Screening mode"
-                    wire:model="screening_policy"
+                    wire:model.live="screening_policy"
                     :options="$screeningPolicyOptions"
                     select="label:label|value:value"
                     :clearable="false" />
@@ -227,124 +195,139 @@
             </div>
         </div>
 
-        <div class="space-y-3" x-ref="rulesWrap">
-            @forelse($screening_rules as $i => $row)
-                @php
-                    $field = $row['field'] ?? null;
-                    $ops   = $this->operatorOptions($field);
-                    $vOpts = $this->valueOptions($field);
-                    $meta  = $this->fieldMeta($field);
-                    $type  = $meta['type'] ?? 'text';
-                    $isBetween = (($row['op'] ?? null) === 'between');
-                    $rowKey = $row['id'] ?? ('row-'.$i);
-                @endphp
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead class="text-left text-slate-600">
+                    <tr class="border-b">
+                        <th class="py-2 px-2 w-10">Ask</th>
+                        <th class="py-2 px-2">Question</th>
+                        <th class="py-2 px-2 w-48">Operator</th>
+                        <th class="py-2 px-2 w-[28rem]">Value / Range</th>
+                        <th class="py-2 px-2 w-40">Severity</th>
+                        <th class="py-2 px-2">Note</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y">
+                    @foreach($screeningFieldOptions as $opt)
+                        @php
+                            $field   = $opt['value'];
+                            $label   = $opt['label'];
+                            $type    = $opt['type'];
+                            $i       = $ruleIndexByField[$field] ?? null; // index in screening_rules if enabled
+                            $ops     = $this->operatorOptions($field);
+                            $vOpts   = $this->valueOptions($field);
+                            $isOn    = $i !== null;
+                            $row     = $isOn ? ($screening_rules[$i] ?? []) : [];
+                            $opValue = $isOn ? ($row['op'] ?? null) : null;
+                            $isBetween = $isOn && ($opValue === 'between') && in_array($type, ['number','number_money'], true);
+                        @endphp
 
-                <div class="rule-row p-3 rounded-xl ring-1 ring-[var(--border)] bg-[var(--panel)]" wire:key="rule-{{ $rowKey }}">
-                    <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                        <div class="md:col-span-3">
-                            <x-ts-select.styled
-                                label="Field"
-                                wire:model="screening_rules.{{ $i }}.field"
-                                :options="$screeningFieldOptions"
-                                select="label:label|value:value"
-                                placeholder="Choose a field" />
-                        </div>
+                        <tr class="align-top">
+                            {{-- Ask checkbox --}}
+                            <td class="py-3 px-2">
+                                <input
+                                    type="checkbox"
+                                    @checked($isOn)
+                                    wire:change="toggleField('{{ $field }}', $event.target.checked)"
+                                    class="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand">
+                            </td>
 
-                        <div class="md:col-span-2">
-                            <x-ts-select.styled
-                                label="Operator"
-                                wire:model="screening_rules.{{ $i }}.op"
-                                :options="$ops"
-                                select="label:label|value:value"
-                                placeholder="Op" />
-                        </div>
+                            {{-- Question label --}}
+                            <td class="py-3 px-2">
+                                <div class="font-medium">{{ $label }}</div>
+                                <div class="text-xs text-slate-500">{{ $field }}</div>
+                            </td>
 
-                        <div class="md:col-span-4">
-                            @if($type === 'number' || $type === 'number_money')
-                                @if($isBetween)
-                                    <div class="grid grid-cols-2 gap-2">
-                                        <x-ts-input type="number" label="Min" wire:model.blur="screening_rules.{{ $i }}.min" />
-                                        <x-ts-input type="number" label="Max" wire:model.blur="screening_rules.{{ $i }}.max" />
-                                    </div>
+                            {{-- Operator --}}
+                            <td class="py-3 px-2">
+                                @if($isOn)
+                                    <x-ts-select.styled
+                                        wire:model="screening_rules.{{ $i }}.op"
+                                        wire:change="onOperatorChange({{ $i }})"
+                                        :options="$ops"
+                                        select="label:label|value:value"
+                                        placeholder="Op" />
+                                    @error("screening_rules.$i.op") <x-ts-error :text="$message" /> @enderror
                                 @else
-                                    <x-ts-input type="number" label="Value" wire:model.blur="screening_rules.{{ $i }}.value" />
+                                    <span class="text-slate-400">—</span>
                                 @endif
-                            @elseif($type === 'date')
-                                <x-ts-input type="date" label="Date" wire:model.blur="screening_rules.{{ $i }}.value" />
-                            @elseif($type === 'boolean')
-                                <x-ts-select.styled
-                                    label="Value"
-                                    wire:model="screening_rules.{{ $i }}.value"
-                                    :options="[['label'=>'Yes','value'=>true],['label'=>'No','value'=>false]]"
-                                    select="label:label|value:value"
-                                    :clearable="false" />
-                            @elseif(in_array($type, ['multiselect','multiselect_enum_ot','multiselect_enum_cs']))
-                                <x-ts-select.styled
-                                    label="Values"
-                                    :multiple="true"
-                                    :searchable="true"
-                                    wire:model="screening_rules.{{ $i }}.value"
-                                    :options="$vOpts"
-                                    select="label:label|value:value"
-                                    placeholder="Choose one or more" />
-                            @elseif($type === 'select' || $type === 'select_workauth')
-                                <x-ts-select.styled
-                                    label="Value"
-                                    :multiple="(isset($row['op']) && $row['op'] === 'in')"
-                                    :searchable="true"
-                                    wire:model="screening_rules.{{ $i }}.value"
-                                    :options="$vOpts"
-                                    select="label:label|value:value"
-                                    placeholder="Choose" />
-                            @else
-                                <x-ts-input label="Value" wire:model.blur="screening_rules.{{ $i }}.value" />
-                            @endif
-                        </div>
+                            </td>
 
-                        <div class="md:col-span-2">
-                            <x-ts-select.styled
-                                label="Severity"
-                                wire:model="screening_rules.{{ $i }}.severity"
-                                :options="[['label'=>'Fail (deal-breaker)','value'=>'fail'],['label'=>'Flag (soft)','value'=>'flag']]"
-                                select="label:label|value:value"
-                                :clearable="false" />
-                        </div>
+                            {{-- Value / Range --}}
+                            <td class="py-3 px-2">
+                                @if(!$isOn)
+                                    <span class="text-slate-400">—</span>
+                                @else
+                                    @if($isBetween)
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <x-ts-input type="number" label="Min" wire:model.defer="screening_rules.{{ $i }}.min" />
+                                            <x-ts-input type="number" label="Max" wire:model.defer="screening_rules.{{ $i }}.max" />
+                                            @error("screening_rules.$i.min") <x-ts-error :text="$message" /> @enderror
+                                            @error("screening_rules.$i.max") <x-ts-error :text="$message" /> @enderror
+                                        </div>
+                                    @elseif($type === 'date')
+                                        <x-ts-input type="date" wire:model.defer="screening_rules.{{ $i }}.value" />
+                                        @error("screening_rules.$i.value") <x-ts-error :text="$message" /> @enderror
+                                    @elseif($type === 'boolean')
+                                        <x-ts-select.styled
+                                            :options="[['label'=>'Yes','value'=>true],['label'=>'No','value'=>false]]"
+                                            select="label:label|value:value"
+                                            wire:model="screening_rules.{{ $i }}.value"
+                                            :clearable="false" />
+                                        @error("screening_rules.$i.value") <x-ts-error :text="$message" /> @enderror
+                                    @elseif(in_array($type, ['multiselect','multiselect_enum_ot','multiselect_enum_cs'], true))
+                                        <x-ts-select.styled
+                                            :multiple="true"
+                                            :searchable="true"
+                                            :options="$vOpts"
+                                            select="label:label|value:value"
+                                            wire:model.defer="screening_rules.{{ $i }}.value"
+                                            placeholder="Choose one or more" />
+                                        @error("screening_rules.$i.value") <x-ts-error :text="$message" /> @enderror
+                                    @elseif($type === 'number' || $type === 'number_money')
+                                        <x-ts-input type="number" wire:model.defer="screening_rules.{{ $i }}.value" />
+                                        @error("screening_rules.$i.value") <x-ts-error :text="$message" /> @enderror
+                                    @else
+                                        <x-ts-input wire:model.defer="screening_rules.{{ $i }}.value" />
+                                        @error("screening_rules.$i.value") <x-ts-error :text="$message" /> @enderror
+                                    @endif
+                                @endif
+                            </td>
 
-                        <div class="md:col-span-1 flex justify-end md:justify-center">
-                            <x-ts-button
-                                type="button"
-                                size="sm"
-                                class="btn-accent outline"
-                                wire:click.prevent="removeRuleRow({{ $i }})"
-                            >
-                                Remove
-                            </x-ts-button>
-                        </div>
+                            {{-- Severity --}}
+                            <td class="py-3 px-2">
+                                @if($isOn)
+                                    <x-ts-select.styled
+                                        :options="[['label'=>'Fail (deal-breaker)','value'=>'fail'],['label'=>'Flag (soft)','value'=>'flag']]"
+                                        select="label:label|value:value"
+                                        wire:model.defer="screening_rules.{{ $i }}.severity"
+                                        :clearable="false" />
+                                    @error("screening_rules.$i.severity") <x-ts-error :text="$message" /> @enderror
+                                @else
+                                    <span class="text-slate-400">—</span>
+                                @endif
+                            </td>
 
-                        <div class="md:col-span-12">
-                            <x-ts-input
-                                label="Optional note (shown internally)"
-                                placeholder="E.g., Must live in TX or OK; commission-only mindset required for this territory."
-                                wire:model.blur="screening_rules.{{ $i }}.message" />
-                        </div>
-                    </div>
-                </div>
-            @empty
-                <x-ts-banner>No criteria added yet. Add at least one rule to filter for must-haves.</x-ts-banner>
-            @endforelse
+                            {{-- Note --}}
+                            <td class="py-3 px-2">
+                                @if($isOn)
+                                    <x-ts-input placeholder="Internal note…" wire:model.defer="screening_rules.{{ $i }}.message" />
+                                @else
+                                    <span class="text-slate-400">—</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
 
-            <div>
-                <x-ts-button
-                    type="button"
-                    class="btn-brand outline"
-                    x-on:click="
-                        adding = true;
-                        $wire.addRuleRow()
-                    "
-                >
-                    + Add criterion
-                </x-ts-button>
-            </div>
+        <div class="flex items-center gap-2 pt-2">
+            <x-ts-button type="button" class="btn-accent outline" wire:click="$refresh">
+                Refresh table
+            </x-ts-button>
+            <x-ts-button type="button" class="btn-brand" wire:click.prevent="save('stay')">Save</x-ts-button>
+            <x-ts-button type="button" class="btn-accent" wire:click.prevent="save('index')">Save & return</x-ts-button>
         </div>
     </x-ts-card>
 

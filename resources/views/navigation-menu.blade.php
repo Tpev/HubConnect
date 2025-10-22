@@ -15,7 +15,7 @@
         blank($team->website)
     );
 
-    // KYC state
+    // KYC state (company)
     $companyVerified = (bool) ($team?->kyc_status === 'approved');
     $needsBasics     = $team
         ? (blank($team->name) || blank($team->company_type) || blank($team->hq_country))
@@ -44,7 +44,7 @@
         default        => 'Explore',
     };
 
-    // Recruitment label (simple, clear)
+    // Recruitment label
     $hiringLabel = 'Hiring';
 
     // helper for active states
@@ -61,6 +61,10 @@
             ? ($team ? route('companies.profile.edit', $team) : route('dashboard'))
             : route('kyc.gate');
     };
+
+    // ROLE HELPERS
+    $isInd = $user?->isIndividual() ?? false;
+    $isCo  = $user?->isCompany()   ?? false;
 @endphp
 
 <nav x-data="{ open: false }" class="sticky top-0 z-40 bg-white/85 backdrop-blur border-b border-[var(--border)]">
@@ -76,134 +80,171 @@
 
                 {{-- Desktop nav --}}
                 <ul class="hidden sm:flex items-center gap-1">
-                    <li>
-                        <a href="{{ route('dashboard') }}"
-                           class="px-3 py-2 rounded-lg font-semibold inline-flex items-center gap-1.5 whitespace-nowrap {{ $isActive('dashboard') }}">
-                            Dashboard
-                        </a>
-                    </li>
-
-                    {{-- Explore directory (locked until verified) --}}
-                    <li>
-                        @if($companyVerified)
-                            <a href="{{ route('companies.index') }}"
-                               class="px-3 py-2 rounded-lg font-semibold inline-flex items-center gap-1.5 whitespace-nowrap {{ $isActive(['companies.index','companies.show','companies.profile.edit','companies.intent.edit']) }}">
-                                {{ $exploreLabel }}
-                            </a>
-                        @else
-                            <a href="{{ $lockedHref() }}"
-                               class="px-3 py-2 rounded-lg font-semibold inline-flex items-center gap-1.5 whitespace-nowrap text-slate-400 hover:text-slate-500"
-                               title="{{ $needsBasics ? 'Complete your company basics to submit for verification' : 'Pending verification — usually within one business day' }}">
-                                {{-- lock icon --}}
-                                <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                    <path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                                    <rect x="4.75" y="10" width="14.5" height="9.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
-                                </svg>
-                                <span>{{ $exploreLabel }}</span>
-                            </a>
-                        @endif
-                    </li>
-
-                    {{-- Deal Rooms (locked until verified) --}}
-                    <li>
-                        @if($companyVerified)
-                            <a href="{{ route('deal-rooms.index') }}"
-                               class="px-3 py-2 rounded-lg font-semibold inline-flex items-center gap-1.5 whitespace-nowrap {{ $isActive('deal-rooms.index') }}">
-                                <span>Deal Rooms</span>
-                                @if($dealUnreadTotal > 0)
-                                    <span class="inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-indigo-600 text-white text-[11px] leading-none">
-                                        {{ $dealUnreadDisplay }}
-                                    </span>
-                                @endif
-                            </a>
-                        @else
-                            <a href="{{ $lockedHref() }}"
-                               class="px-3 py-2 rounded-lg font-semibold inline-flex items-center gap-1.5 whitespace-nowrap text-slate-400 hover:text-slate-500"
-                               title="{{ $needsBasics ? 'Complete your company basics to submit for verification' : 'Pending verification — usually within one business day' }}">
-                                <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                    <path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                                    <rect x="4.75" y="10" width="14.5" height="9.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
-                                </svg>
-                                <span>Deal Rooms</span>
-                            </a>
-                        @endif
-                    </li>
-
-                    {{-- Hiring (Recruitment) --}}
-                    @if(Route::has('employer.openings'))
+                    {{-- Show generic Dashboard only when NOT an individual --}}
+                    @unless($isInd)
                         <li>
-                            <a href="{{ route('employer.openings') }}"
-                               class="px-3 py-2 rounded-lg font-semibold inline-flex items-center gap-1.5 whitespace-nowrap {{ $isActive(['employer.openings','employer.openings.*']) }}">
-                                {{ $hiringLabel }}
+                            <a href="{{ route('dashboard') }}"
+                               class="px-3 py-2 rounded-lg font-semibold inline-flex items-center gap-1.5 whitespace-nowrap {{ $isActive('dashboard') }}">
+                                Dashboard
                             </a>
                         </li>
-                    @endif
+                    @endunless
 
-                    {{-- Admin --}}
-                    @if($user?->is_admin ?? false)
+                    {{-- ===================== INDIVIDUAL-ONLY ===================== --}}
+                    @if($isInd)
+                        @if(Route::has('dashboard.individual'))
+                            <li>
+                                <a href="{{ route('dashboard.individual') }}"
+                                   class="px-3 py-2 rounded-lg font-semibold inline-flex items-center gap-1.5 whitespace-nowrap {{ $isActive('dashboard.individual') }}">
+                                    My Dashboard
+                                </a>
+                            </li>
+                        @endif
+
+                        @if(Route::has('openings.index'))
+                            <li>
+                                <a href="{{ route('openings.index') }}"
+                                   class="px-3 py-2 rounded-lg font-semibold inline-flex items-center gap-1.5 whitespace-nowrap {{ $isActive('openings.index') }}">
+                                    Job Board
+                                </a>
+                            </li>
+                        @endif
+
                         <li>
-                            <a href="{{ route('admin.dashboard') }}"
-                               class="px-3 py-2 rounded-lg font-semibold inline-flex items-center gap-1.5 whitespace-nowrap {{ $isActive('admin.*') }}">
-                                Admin
+                            <a href="{{ route('applicant.profile.edit') }}"
+                               class="px-3 py-2 rounded-lg font-semibold inline-flex items-center gap-1.5 whitespace-nowrap {{ $isActive('applicant.profile.edit') }}">
+                                Profile
                             </a>
                         </li>
+
+                        {{-- Verification removed for individuals --}}
                     @endif
+                    {{-- =================== /INDIVIDUAL-ONLY ====================== --}}
+
+                    {{-- ===================== COMPANY-ONLY ===================== --}}
+                    @if($isCo)
+                        {{-- Explore directory (locked until verified) --}}
+                        <li>
+                            @if($companyVerified)
+                                <a href="{{ route('companies.index') }}"
+                                   class="px-3 py-2 rounded-lg font-semibold inline-flex items-center gap-1.5 whitespace-nowrap {{ $isActive(['companies.index','companies.show','companies.profile.edit','companies.intent.edit']) }}">
+                                    {{ $exploreLabel }}
+                                </a>
+                            @else
+                                <a href="{{ $lockedHref() }}"
+                                   class="px-3 py-2 rounded-lg font-semibold inline-flex items-center gap-1.5 whitespace-nowrap text-slate-400 hover:text-slate-500"
+                                   title="{{ $needsBasics ? 'Complete your company basics to submit for verification' : 'Pending verification — usually within one business day' }}">
+                                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                        <rect x="4.75" y="10" width="14.5" height="9.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                                    </svg>
+                                    <span>{{ $exploreLabel }}</span>
+                                </a>
+                            @endif
+                        </li>
+
+                        {{-- Deal Rooms (locked until verified) --}}
+                        <li>
+                            @if($companyVerified)
+                                <a href="{{ route('deal-rooms.index') }}"
+                                   class="px-3 py-2 rounded-lg font-semibold inline-flex items-center gap-1.5 whitespace-nowrap {{ $isActive('deal-rooms.index') }}">
+                                    <span>Deal Rooms</span>
+                                    @if($dealUnreadTotal > 0)
+                                        <span class="inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-indigo-600 text-white text-[11px] leading-none">
+                                            {{ $dealUnreadDisplay }}
+                                        </span>
+                                    @endif
+                                </a>
+                            @else
+                                <a href="{{ $lockedHref() }}"
+                                   class="px-3 py-2 rounded-lg font-semibold inline-flex items-center gap-1.5 whitespace-nowrap text-slate-400 hover:text-slate-500"
+                                   title="{{ $needsBasics ? 'Complete your company basics to submit for verification' : 'Pending verification — usually within one business day' }}">
+                                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                        <rect x="4.75" y="10" width="14.5" height="9.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                                    </svg>
+                                    <span>Deal Rooms</span>
+                                </a>
+                            @endif
+                        </li>
+
+                        {{-- Hiring (Recruitment) --}}
+                        @if(Route::has('employer.openings'))
+                            <li>
+                                <a href="{{ route('employer.openings') }}"
+                                   class="px-3 py-2 rounded-lg font-semibold inline-flex items-center gap-1.5 whitespace-nowrap {{ $isActive(['employer.openings','employer.openings.*']) }}">
+                                    {{ $hiringLabel }}
+                                </a>
+                            </li>
+                        @endif
+
+                        {{-- Admin --}}
+                        @if($user?->is_admin ?? false)
+                            <li>
+                                <a href="{{ route('admin.dashboard') }}"
+                                   class="px-3 py-2 rounded-lg font-semibold inline-flex items-center gap-1.5 whitespace-nowrap {{ $isActive('admin.*') }}">
+                                    Admin
+                                </a>
+                            </li>
+                        @endif
+                    @endif
+                    {{-- =================== /COMPANY-ONLY ====================== --}}
                 </ul>
             </div>
 
             {{-- Right: Actions + Team + User --}}
             <div class="hidden sm:flex items-center gap-3">
 
-                {{-- Connections bell (desktop) - only for signed-in users --}}
+                {{-- Connections bell (desktop) - only for company users --}}
                 @auth
-                    <div>
-                        @if($companyVerified)
-                            <button
-                                type="button"
-                                x-data
-                                x-on:click="Livewire.dispatch('toggle-connections')"
-                                class="relative inline-flex items-center justify-center rounded-lg p-2 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--brand-300)]"
-                                aria-label="Connections"
-                                title="Connections"
-                            >
-                                {{-- Bell icon --}}
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                                </svg>
-                                @if($pendingRequestsCount > 0)
-                                    <span class="absolute -top-0.5 -right-0.5 bg-rose-600 text-white text-[10px] leading-none rounded-full px-1.5 py-0.5">
-                                        {{ $pendingRequestsCount }}
-                                    </span>
-                                @endif
-                            </button>
-                        @else
-                            <a href="{{ $lockedHref() }}"
-                               class="relative inline-flex items-center justify-center rounded-lg p-2 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--brand-300)]"
-                               aria-label="Connections (locked)"
-                               title="{{ $needsBasics ? 'Complete your company basics to submit for verification' : 'Pending verification — usually within one business day' }}"
-                            >
-                                {{-- Small lock-bell combo for clarity --}}
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5" />
-                                    <rect x="9" y="2.75" width="6" height="4.5" rx="2" stroke-width="1.25"/>
-                                </svg>
-                            </a>
-                        @endif
-                    </div>
+                    @if($isCo)
+                        <div>
+                            @if($companyVerified)
+                                <button
+                                    type="button"
+                                    x-data
+                                    x-on:click="Livewire.dispatch('toggle-connections')"
+                                    class="relative inline-flex items-center justify-center rounded-lg p-2 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--brand-300)]"
+                                    aria-label="Connections"
+                                    title="Connections"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                                    </svg>
+                                    @if($pendingRequestsCount > 0)
+                                        <span class="absolute -top-0.5 -right-0.5 bg-rose-600 text-white text-[10px] leading-none rounded-full px-1.5 py-0.5">
+                                            {{ $pendingRequestsCount }}
+                                        </span>
+                                    @endif
+                                </button>
+                            @else
+                                <a href="{{ $lockedHref() }}"
+                                   class="relative inline-flex items-center justify-center rounded-lg p-2 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--brand-300)]"
+                                   aria-label="Connections (locked)"
+                                   title="{{ $needsBasics ? 'Complete your company basics to submit for verification' : 'Pending verification — usually within one business day' }}"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5" />
+                                        <rect x="9" y="2.75" width="6" height="4.5" rx="2" stroke-width="1.25"/>
+                                    </svg>
+                                </a>
+                            @endif
+                        </div>
+                    @endif
                 @endauth
 
-                {{-- Jobs Board: ALWAYS visible (guests too) --}}
-                @if(Route::has('openings.index'))
+                {{-- Jobs Board: remove orange button for INDIVIDUALS; keep for guests/companies --}}
+                @if(Route::has('openings.index') && !($isInd))
                     <a href="{{ route('openings.index') }}" class="btn-accent outline text-sm whitespace-nowrap inline-flex items-center">
                         Jobs Board
                     </a>
                 @endif
 
-                {{-- Company / Team Dropdown (Jetstream) --}}
+                {{-- Company / Team Dropdown (Jetstream) — company only --}}
                 @auth
-                    @if (Laravel\Jetstream\Jetstream::hasTeamFeatures())
+                    @if ($isCo && Laravel\Jetstream\Jetstream::hasTeamFeatures())
                         <div class="relative">
                             <x-dropdown align="right" width="60">
                                 <x-slot name="trigger">
@@ -287,7 +328,7 @@
                     @endif
                 @endauth
 
-                {{-- User Dropdown (Jetstream) --}}
+                {{-- User Dropdown (Jetstream) — all users --}}
                 @auth
                     <div class="relative">
                         <x-dropdown align="right" width="48">
@@ -317,7 +358,7 @@
                                 <x-dropdown-link href="{{ route('profile.show') }}">Profile</x-dropdown-link>
                                 @if (Laravel\Jetstream\Jetstream::hasApiFeatures())
                                     <x-dropdown-link href="{{ route('api-tokens.index') }}">API Tokens</x-dropdown-link>
-                                @endif
+                                @endif>
                                 <div class="border-t border-gray-200 my-1"></div>
                                 <form method="POST" action="{{ route('logout') }}" x-data>
                                     @csrf
@@ -331,43 +372,45 @@
                 @endauth
             </div>
 
-            {{-- Mobile left: connections bell (auth only) + hamburger --}}
+            {{-- Mobile left: connections bell (company-only) + hamburger --}}
             <div class="flex items-center sm:hidden">
-                {{-- Mobile connections bell (auth only) --}}
+                {{-- Mobile connections bell (auth + company only) --}}
                 @auth
-                    <div class="me-1">
-                        @if($companyVerified)
-                            <button
-                                type="button"
-                                @click="Livewire.dispatch('toggle-connections')"
-                                class="relative inline-flex items-center justify-center p-2 rounded-md text-slate-600 hover:text-[var(--brand-700)] hover:bg-[var(--brand-50)] focus:outline-none transition"
-                                aria-label="Connections"
-                                title="Connections"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                                </svg>
-                                @if($pendingRequestsCount > 0)
-                                    <span class="absolute -top-0.5 -right-0.5 bg-rose-600 text-white text-[10px] leading-none rounded-full px-1.5 py-0.5">
-                                        {{ $pendingRequestsCount }}
-                                    </span>
-                                @endif
-                            </button>
-                        @else
-                            <a href="{{ $lockedHref() }}"
-                               class="inline-flex items-center justify-center p-2 rounded-md text-slate-400 hover:text-slate-500 focus:outline-none transition"
-                               aria-label="Connections (locked)"
-                               title="{{ $needsBasics ? 'Complete your company basics to submit for verification' : 'Pending verification — usually within one business day' }}"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5" />
-                                    <rect x="9" y="2.75" width="6" height="4.5" rx="2" stroke-width="1.25"/>
-                                </svg>
-                            </a>
-                        @endif
-                    </div>
+                    @if($isCo)
+                        <div class="me-1">
+                            @if($companyVerified)
+                                <button
+                                    type="button"
+                                    @click="Livewire.dispatch('toggle-connections')"
+                                    class="relative inline-flex items-center justify-center p-2 rounded-md text-slate-600 hover:text-[var(--brand-700)] hover:bg-[var(--brand-50)] focus:outline-none transition"
+                                    aria-label="Connections"
+                                    title="Connections"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5"/>
+                                    </svg>
+                                    @if($pendingRequestsCount > 0)
+                                        <span class="absolute -top-0.5 -right-0.5 bg-rose-600 text-white text-[10px] leading-none rounded-full px-1.5 py-0.5">
+                                            {{ $pendingRequestsCount }}
+                                        </span>
+                                    @endif
+                                </button>
+                            @else
+                                <a href="{{ $lockedHref() }}"
+                                   class="inline-flex items-center justify-center p-2 rounded-md text-slate-400 hover:text-slate-500 focus:outline-none transition"
+                                   aria-label="Connections (locked)"
+                                   title="{{ $needsBasics ? 'Complete your company basics to submit for verification' : 'Pending verification — usually within one business day' }}"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5" />
+                                        <rect x="9" y="2.75" width="6" height="4.5" rx="2" stroke-width="1.25"/>
+                                    </svg>
+                                </a>
+                            @endif
+                        </div>
+                    @endif
                 @endauth
 
                 {{-- Mobile hamburger --}}
@@ -393,70 +436,102 @@
     {{-- Mobile menu --}}
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden border-t border-[var(--border)]">
         <div class="px-4 pt-2 pb-3 space-y-1">
-            <a href="{{ route('dashboard') }}"
-               class="block px-3 py-2 rounded-lg font-semibold {{ $isActive('dashboard') }}">
-                Dashboard
-            </a>
+            {{-- Hide generic Dashboard for individuals on mobile --}}
+            @unless($isInd)
+                <a href="{{ route('dashboard') }}"
+                   class="block px-3 py-2 rounded-lg font-semibold {{ $isActive('dashboard') }}">
+                    Dashboard
+                </a>
+            @endunless
 
-            {{-- Explore (mobile) --}}
-            @if($companyVerified)
-                <a href="{{ route('companies.index') }}"
-                   class="block px-3 py-2 rounded-lg font-semibold {{ $isActive(['companies.index','companies.show','companies.profile.edit','companies.intent.edit']) }}">
-                    {{ $exploreLabel }}
+            {{-- ===================== INDIVIDUAL-ONLY (mobile) ===================== --}}
+            @if($isInd)
+                @if(Route::has('dashboard.individual'))
+                    <a href="{{ route('dashboard.individual') }}"
+                       class="block px-3 py-2 rounded-lg font-semibold {{ $isActive('dashboard.individual') }}">
+                        My Dashboard
+                    </a>
+                @endif
+
+                @if(Route::has('openings.index'))
+                    <a href="{{ route('openings.index') }}"
+                       class="block px-3 py-2 rounded-lg font-semibold {{ $isActive('openings.index') }}">
+                        Job Board
+                    </a>
+                @endif
+
+                <a href="{{ route('applicant.profile.edit') }}"
+                   class="block px-3 py-2 rounded-lg font-semibold {{ $isActive('applicant.profile.edit') }}">
+                    Profile
                 </a>
-            @else
-                <a href="{{ $lockedHref() }}"
-                   class="block px-3 py-2 rounded-lg font-semibold text-slate-400 hover:text-slate-500"
-                   title="{{ $needsBasics ? 'Complete your company basics to submit for verification' : 'Pending verification — usually within one business day' }}">
-                    <span class="inline-flex items-center gap-1.5">
-                        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                            <rect x="4.75" y="10" width="14.5" height="9.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
-                        </svg>
-                        <span>{{ $exploreLabel }}</span>
-                    </span>
-                </a>
+
+                {{-- Verification removed for individuals (mobile) --}}
             @endif
+            {{-- =================== /INDIVIDUAL-ONLY (mobile) ====================== --}}
 
-            {{-- (Connections handled via bell; hidden for guests) --}}
-
-            {{-- Deal Rooms (mobile) --}}
-            @if($companyVerified)
-                <a href="{{ route('deal-rooms.index') }}"
-                   class="block px-3 py-2 rounded-lg font-semibold {{ $isActive('deal-rooms.index') }}">
-                    Deal Rooms
-                    @if($dealUnreadTotal > 0)
-                        <span class="ms-2 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-indigo-600 text-white text-xs">
-                            {{ $dealUnreadDisplay }}
+            {{-- ===================== COMPANY-ONLY (mobile) ===================== --}}
+            @if($isCo)
+                {{-- Explore (mobile) --}}
+                @if($companyVerified)
+                    <a href="{{ route('companies.index') }}"
+                       class="block px-3 py-2 rounded-lg font-semibold {{ $isActive(['companies.index','companies.show','companies.profile.edit','companies.intent.edit']) }}">
+                        {{ $exploreLabel }}
+                    </a>
+                @else
+                    <a href="{{ $lockedHref() }}"
+                       class="block px-3 py-2 rounded-lg font-semibold text-slate-400 hover:text-slate-500"
+                       title="{{ $needsBasics ? 'Complete your company basics to submit for verification' : 'Pending verification — usually within one business day' }}">
+                        <span class="inline-flex items-center gap-1.5">
+                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                <rect x="4.75" y="10" width="14.5" height="9.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                            </svg>
+                            <span>{{ $exploreLabel }}</span>
                         </span>
-                    @endif
-                </a>
-            @else
-                <a href="{{ $lockedHref() }}"
-                   class="block px-3 py-2 rounded-lg font-semibold text-slate-400 hover:text-slate-500">
-                    <span class="inline-flex items-center gap-1.5">
-                        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                            <rect x="4.75" y="10" width="14.5" height="9.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
-                        </svg>
-                        <span>Deal Rooms</span>
-                    </span>
-                </a>
-            @endif
+                    </a>
+                @endif
 
-            {{-- Jobs Board (mobile) — visible to guests, too --}}
-            @if(Route::has('openings.index'))
-                <a href="{{ route('openings.index') }}" class="block px-3 py-2 rounded-lg font-semibold">
-                    Jobs Board
-                </a>
-            @endif
+                {{-- Deal Rooms (mobile) --}}
+                @if($companyVerified)
+                    <a href="{{ route('deal-rooms.index') }}"
+                       class="block px-3 py-2 rounded-lg font-semibold {{ $isActive('deal-rooms.index') }}">
+                        Deal Rooms
+                        @if($dealUnreadTotal > 0)
+                            <span class="ms-2 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-indigo-600 text-white text-xs">
+                                {{ $dealUnreadDisplay }}
+                            </span>
+                        @endif
+                    </a>
+                @else
+                    <a href="{{ $lockedHref() }}"
+                       class="block px-3 py-2 rounded-lg font-semibold text-slate-400 hover:text-slate-500">
+                        <span class="inline-flex items-center gap-1.5">
+                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                <rect x="4.75" y="10" width="14.5" height="9.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                            </svg>
+                            <span>Deal Rooms</span>
+                        </span>
+                    </a>
+                @endif
 
-            @if($user?->is_admin ?? false)
-                <a href="{{ route('admin.dashboard') }}"
-                   class="block px-3 py-2 rounded-lg font-semibold {{ $isActive('admin.*') }}">
-                    Admin
-                </a>
+                {{-- Hiring (Recruitment) --}}
+                @if(Route::has('employer.openings'))
+                    <a href="{{ route('employer.openings') }}"
+                       class="block px-3 py-2 rounded-lg font-semibold {{ $isActive(['employer.openings','employer.openings.*']) }}">
+                        {{ $hiringLabel }}
+                    </a>
+                @endif
+
+                {{-- Admin --}}
+                @if($user?->is_admin ?? false)
+                    <a href="{{ route('admin.dashboard') }}"
+                       class="block px-3 py-2 rounded-lg font-semibold {{ $isActive('admin.*') }}">
+                        Admin
+                    </a>
+                @endif
             @endif
+            {{-- =================== /COMPANY-ONLY (mobile) ====================== --}}
         </div>
 
         {{-- Mobile: user/teams (only when signed in) --}}
@@ -495,8 +570,8 @@
                         </a>
                     </form>
 
-                    {{-- Company / Team (mobile) --}}
-                    @if (Laravel\Jetstream\Jetstream::hasTeamFeatures())
+                    {{-- Company / Team (mobile) — company only --}}
+                    @if ($isCo && Laravel\Jetstream\Jetstream::hasTeamFeatures())
                         <div class="border-t border-[var(--border)] my-2"></div>
                         <div class="block px-3 py-2 text-xs text-gray-400">Company</div>
                         @if($team)

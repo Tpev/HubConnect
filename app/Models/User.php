@@ -32,6 +32,7 @@ class User extends Authenticatable
         'email',
         'password',
 		'is_admin',
+		'account_type',
     ];
 
     /**
@@ -67,5 +68,14 @@ class User extends Authenticatable
             'password' => 'hashed',
 			'is_admin'          => 'boolean',
         ];
+    }
+	    public function isIndividual(): bool
+    {
+        return $this->account_type === 'individual';
+    }
+
+    public function isCompany(): bool
+    {
+        return $this->account_type === 'company';
     }
 }

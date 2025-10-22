@@ -4,14 +4,16 @@ namespace App\Livewire\Recruitment;
 
 use App\Enums\CompStructure;
 use App\Enums\OpeningType;
+use App\Models\Application;
 use App\Models\Opening;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-#[Layout('layouts.guest')] // public/guest layout
+#[Layout('layouts.app')] // use app layout
 class OpeningIndexPublic extends Component
 {
     use WithPagination;
@@ -33,7 +35,7 @@ class OpeningIndexPublic extends Component
     #[Url]
     public ?int $perPage = 12;
 
-    // NEW filters
+    // Filters
     #[Url]
     public ?string $compStructure = null; // salary|commission|salary_commission|equities
     #[Url]
@@ -54,12 +56,39 @@ class OpeningIndexPublic extends Component
         ['label' => '48', 'value' => 48],
     ];
 
-    // NEW: fixed options from enums
+    // fixed options from enums
     public array $compStructureOptions = [];
     public array $openingTypeOptions   = [];
 
+    // viewer context
+    public string $viewerType = 'guest'; // guest|individual|company
+
+    /**
+     * IDs of openings the current user (individual) already applied to.
+     * Used only for UI (to hide/disable Apply).
+     *
+     * @var array<int,int>
+     */
+    public array $appliedOpeningIds = [];
+
     public function mount(): void
     {
+        $user = Auth::user();
+        if ($user && method_exists($user, 'isIndividual') && $user->isIndividual()) {
+            $this->viewerType = 'individual';
+
+            // Preload the set of openings this user applied to
+            $this->appliedOpeningIds = Application::query()
+                ->where('candidate_user_id', $user->id)
+                ->pluck('opening_id')
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->values()
+                ->all();
+        } elseif ($user) {
+            $this->viewerType = 'company';
+        }
+
         // Build facet options from currently visible (published) openings
         $base = Opening::query()
             ->where('status', 'published')
@@ -155,7 +184,7 @@ class OpeningIndexPublic extends Component
         return $q->select([
             'id','slug','title','description','company_type',
             'specialty_ids','territory_ids','compensation',
-            'comp_structure','opening_type', // NEW in select
+            'comp_structure','opening_type',
             'visibility_until','created_at',
         ]);
     }
@@ -165,13 +194,15 @@ class OpeningIndexPublic extends Component
         $openings = $this->query()->paginate($this->perPage ?: 12);
 
         return view('livewire.recruitment.opening-index-public', [
-            'openings'            => $openings,
-            'specialtyOptions'    => $this->specialtyOptions,
-            'territoryOptions'    => $this->territoryOptions,
-            'sortOptions'         => $this->sortOptions,
-            'perPageOptions'      => $this->perPageOptions,
-            'compStructureOptions'=> $this->compStructureOptions,
-            'openingTypeOptions'  => $this->openingTypeOptions,
+            'openings'             => $openings,
+            'specialtyOptions'     => $this->specialtyOptions,
+            'territoryOptions'     => $this->territoryOptions,
+            'sortOptions'          => $this->sortOptions,
+            'perPageOptions'       => $this->perPageOptions,
+            'compStructureOptions' => $this->compStructureOptions,
+            'openingTypeOptions'   => $this->openingTypeOptions,
+            'viewerType'           => $this->viewerType,
+            'appliedOpeningIds'    => $this->appliedOpeningIds,
         ]);
     }
 }

@@ -10,6 +10,19 @@
     <div class="py-8">
         <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white shadow sm:rounded-2xl p-6">
+
+                {{-- Tabs: Companies / Individuals --}}
+                <div class="flex items-center gap-2 mb-4">
+                    <a href="{{ route('admin.kyc.index', ['status' => request('status','pending_review')]) }}"
+                       class="px-3 py-1.5 rounded-lg text-sm font-semibold {{ request()->routeIs('admin.kyc.index') ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200' }}">
+                        Companies
+                    </a>
+                    <a href="{{ route('admin.kyc.individuals.index', ['status' => request('status','pending_review')]) }}"
+                       class="px-3 py-1.5 rounded-lg text-sm font-semibold {{ request()->routeIs('admin.kyc.individuals.index') ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200' }}">
+                        Individuals
+                    </a>
+                </div>
+
                 <form method="GET" class="mb-4">
                     <label class="text-sm text-gray-600 me-2">Status</label>
                     <select name="status" class="rounded-md border-gray-300" onchange="this.form.submit()">

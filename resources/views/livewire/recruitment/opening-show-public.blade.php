@@ -1,3 +1,5 @@
+{{-- resources/views/livewire/recruitment/opening-show-public.blade.php --}}
+
 @php
     use Illuminate\Support\Str;
 
@@ -5,21 +7,20 @@
     $fmtComp = function($value) {
         if (!$value) return null;
         if (is_object($value) && method_exists($value, 'label')) return $value->label();
-        return Str::headline((string) $value); // "salary_commission" → "Salary Commission"
+        return Str::headline((string) $value);
     };
 
     $fmtType = function($value) {
         if (!$value) return null;
         if (is_object($value) && method_exists($value, 'label')) return $value->label();
         $s = (string) $value;
-        // Normalize to common display (W2/1099 caps, others headline)
         return in_array(strtolower($s), ['w2','1099']) ? Str::upper($s) : Str::headline($s);
     };
 @endphp
 
 <div> {{-- SINGLE ROOT WRAPPER --}}
 
-    {{-- ===== Header / Title (spacious) ===== --}}
+    {{-- ===== Header / Title ===== --}}
     <section class="grad-hero border-b border-[var(--border)]/80">
         <div class="max-w-7xl mx-auto px-4 py-10 sm:py-12">
             <div class="flex items-start justify-between gap-6">
@@ -44,18 +45,39 @@
                     </h1>
                 </div>
 
-                {{-- Apply (compact, desktop only) --}}
+                {{-- Apply / Manage (desktop) --}}
                 <div class="hidden md:block shrink-0">
-                    <a href="{{ route('openings.apply', $opening->slug) }}"
-                       class="btn-accent inline-flex items-center gap-2 text-sm"
-                       style="padding:.5rem 1rem;">
-                        Apply
-                        <x-ts-icon name="arrow-right" />
-                    </a>
+                    @auth
+                        @if($viewerType === 'individual' && Route::has('openings.apply'))
+                            @if(!$hasApplied)
+                                <a href="{{ route('openings.apply', $opening->slug) }}"
+                                   class="btn-accent inline-flex items-center gap-2 text-sm"
+                                   style="padding:.5rem 1rem;">
+                                    Apply
+                                    <x-ts-icon name="arrow-right" />
+                                </a>
+                            @else
+                                <button type="button" disabled
+                                    class="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed"
+                                    title="You have already applied">
+                                    Already applied
+                                    <x-ts-icon name="check" />
+                                </button>
+                            @endif
+                        @endif
+
+                        @if($viewerType === 'company' && Route::has('employer.openings'))
+                            <a href="{{ route('employer.openings') }}"
+                               class="btn-brand outline inline-flex items-center gap-2 text-sm"
+                               style="padding:.5rem 1rem;">
+                                Manage openings
+                            </a>
+                        @endif
+                    @endauth
                 </div>
             </div>
 
-            {{-- Tags row (specialties / territories) --}}
+            {{-- Tags row --}}
             @if(($opening->specialty_ids && count($opening->specialty_ids)) || ($opening->territory_ids && count($opening->territory_ids)))
                 <div class="mt-4 flex flex-wrap gap-1.5">
                     @foreach(($opening->specialty_ids ?? []) as $spec)
@@ -69,14 +91,36 @@
         </div>
     </section>
 
-    {{-- ===== Content (spacious) ===== --}}
+    {{-- ===== Content ===== --}}
     <div class="max-w-7xl mx-auto px-4 py-8 space-y-8">
 
-        {{-- Quick facts (roomier paddings) --}}
+        {{-- Banner if already applied --}}
+        @auth
+            @if($viewerType === 'individual' && $hasApplied && $myApplication)
+                <div class="p-4 rounded-xl bg-emerald-50 ring-1 ring-emerald-200 text-emerald-900">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 6L9 17l-5-5" />
+                        </svg>
+                        <div class="min-w-0">
+                            <div class="font-semibold">You already applied to this opening.</div>
+                            <div class="text-sm">
+                                Submitted {{ $myApplication->created_at?->toDayDateTimeString() ?? 'earlier' }}.
+                                @if(Route::has('applications.show'))
+                                    <a href="{{ route('applications.show', $myApplication->id) }}" class="underline">View your application</a>.
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+        @endauth
+
+        {{-- Quick facts --}}
         <x-ts-card class="p-6 ring-brand bg-white/95">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
-                {{-- Compensation (emphasized) --}}
+                {{-- Compensation --}}
                 <div class="rounded-xl ring-1 ring-[var(--brand-200)] bg-[var(--brand-50)]/70 p-4">
                     <div class="text-[11px] uppercase tracking-wide font-bold text-[var(--brand-800)]">Compensation</div>
                     <div class="mt-1">
@@ -130,45 +174,47 @@
             </div>
         </x-ts-card>
 
-        {{-- Description (larger type) --}}
+        {{-- Description --}}
         <x-ts-card class="p-6 ring-brand bg-white/95 space-y-4">
             <div class="prose max-w-none">
                 {!! nl2br(e($opening->description)) !!}
             </div>
-
-            @if($opening->roleplay_policy !== 'disabled')
-                <x-ts-banner class="mt-2">
-                    This opening uses a roleplay evaluation
-                    @if($opening->roleplay_policy === 'required')
-                        <strong>(required)</strong>
-                    @else
-                        <strong>(optional)</strong>
-                    @endif
-                    @if($opening->roleplay_pass_threshold)
-                        — Target score: <strong>{{ number_format($opening->roleplay_pass_threshold, 2) }}</strong>
-                    @endif
-                </x-ts-banner>
-            @endif
         </x-ts-card>
 
         {{-- Bottom actions (mobile first) --}}
         <div class="md:hidden">
-            <a href="{{ route('openings.apply', $opening->slug) }}"
-               class="btn-accent w-full inline-flex items-center justify-center gap-2 text-sm"
-               style="padding:.6rem 1rem;">
-                Apply
-                <x-ts-icon name="arrow-right" />
-            </a>
+            @auth
+                @if($viewerType === 'individual' && Route::has('openings.apply'))
+                    @if(!$hasApplied)
+                        <a href="{{ route('openings.apply', $opening->slug) }}"
+                           class="btn-accent w-full inline-flex items-center justify-center gap-2 text-sm"
+                           style="padding:.6rem 1rem;">
+                            Apply
+                            <x-ts-icon name="arrow-right" />
+                        </a>
+                    @else
+                        <button type="button" disabled
+                                class="w-full inline-flex items-center justify-center gap-2 text-sm px-4 py-2 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed">
+                            Already applied
+                            <x-ts-icon name="check" />
+                        </button>
+                    @endif
+                @endif
+            @endauth
         </div>
 
         {{-- Secondary actions --}}
         <div class="flex items-center justify-between pt-2">
             <a href="{{ route('openings.index') }}" class="text-sm text-[var(--brand-700)] hover:underline">← Back to openings</a>
-            <a href="{{ route('openings.apply', $opening->slug) }}"
-               class="hidden md:inline-flex items-center gap-1.5 text-[var(--brand-700)] hover:underline text-sm">
-                Apply now
-                <x-ts-icon name="arrow-right" />
-            </a>
+            @auth
+                @if($viewerType === 'individual' && Route::has('openings.apply') && !$hasApplied)
+                    <a href="{{ route('openings.apply', $opening->slug) }}"
+                       class="hidden md:inline-flex items-center gap-1.5 text-[var(--brand-700)] hover:underline text-sm">
+                        Apply now
+                        <x-ts-icon name="arrow-right" />
+                    </a>
+                @endif
+            @endauth
         </div>
     </div>
 

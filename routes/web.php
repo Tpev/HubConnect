@@ -17,8 +17,7 @@ use App\Livewire\Manufacturer\MatchInbox;
 use App\Http\Controllers\CvDownloadController;
 use App\Http\Controllers\RoleplayInviteController;
 use App\Http\Controllers\RoleplaySubmitController;
-use App\Livewire\Recruitment\OpeningCreate;
-use App\Livewire\Recruitment\OpeningEdit;
+
 
 // Companies (directory side)
 use App\Http\Controllers\CompanyController;
@@ -39,6 +38,73 @@ use App\Livewire\DealRooms\Show as DealRoomShow;
 use App\Http\Controllers\KycController;
 use App\Http\Controllers\Admin\KycReviewController;
 use App\Http\Controllers\DealRoomFileController;
+use App\Livewire\ProfileSetup;
+use App\Livewire\Kyc\IndividualKycForm;
+use App\Http\Controllers\JobApplicationController;
+use App\Livewire\Recruitment\OpeningIndexPublic;
+use App\Livewire\Recruitment\OpeningShowPublic;
+use App\Livewire\Recruitment\ApplicationStart;
+use App\Livewire\Dashboard\Index as DashboardIndex;
+use App\Livewire\Dashboard\IndividualDashboard;
+use App\Livewire\Applicant\ProfileEditor;
+use App\Livewire\Recruitment\EmployerOpeningsIndex;
+use App\Livewire\Recruitment\OpeningCreate;
+use App\Livewire\Recruitment\OpeningEdit;
+
+
+
+
+Route::middleware(['auth','verified'])->group(function () {
+    Route::get('/applicant/profile', ProfileEditor::class)
+        ->name('applicant.profile.edit');
+});
+
+
+Route::middleware(['auth','verified'])->prefix('admin')->name('admin.')->group(function () {
+    // Company KYCs (existing)
+    Route::get('/kyc', [KycReviewController::class, 'index'])->name('kyc.index');
+    Route::put('/kyc/{team}/approve', [KycReviewController::class, 'approve'])->name('kyc.approve');
+    Route::put('/kyc/{team}/reject', [KycReviewController::class, 'reject'])->name('kyc.reject');
+
+    // Individual KYCs (NEW)
+    Route::get('/kyc/individuals', [KycReviewController::class, 'individuals'])->name('kyc.individuals.index');
+    Route::put('/kyc/individuals/{submission}/approve', [KycReviewController::class, 'approveIndividual'])->name('kyc.individuals.approve');
+    Route::put('/kyc/individuals/{submission}/reject', [KycReviewController::class, 'rejectIndividual'])->name('kyc.individuals.reject');
+});
+
+Route::middleware(['auth','verified'])->group(function () {
+    // Your existing dashboard
+    Route::get('/dashboard', DashboardIndex::class)->name('dashboard');
+
+    // New Individual dashboard
+    Route::get('/dashboard/individual', IndividualDashboard::class)->name('dashboard.individual');
+});
+
+Route::get('/openings', OpeningIndexPublic::class)->name('openings.index');
+Route::get('/openings/{opening:slug}', OpeningShowPublic::class)->name('openings.show');
+
+# Detailed form (existing Livewire)
+Route::get('/openings/{opening:slug}/apply', ApplicationStart::class)->name('openings.apply');
+
+# Quick apply (logged-in individuals)
+Route::post('/openings/{opening:slug}/apply/quick', [JobApplicationController::class, 'quickApply'])
+    ->middleware(['auth','verified'])
+    ->name('openings.apply.quick');
+
+
+Route::middleware(['auth','verified'])->group(function () {
+    Route::get('/kyc/individual', IndividualKycForm::class)->name('kyc.individual');
+});
+
+Route::middleware(['auth','verified'])->prefix('admin')->group(function () {
+    Route::get('/kyc/individuals', [KycReviewController::class, 'individuals'])->name('admin.kyc.individuals.index');
+    Route::post('/kyc/individuals/{submission}/approve', [KycReviewController::class, 'approveIndividual'])->name('admin.kyc.individuals.approve');
+    Route::post('/kyc/individuals/{submission}/reject', [KycReviewController::class, 'rejectIndividual'])->name('admin.kyc.individuals.reject');
+});
+
+Route::middleware(['auth','verified'])->group(function () {
+    Route::get('/profile/setup', ProfileSetup::class)->name('profile.setup');
+});
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/deal-rooms/files/{file}/download', [DealRoomFileController::class, 'download'])
@@ -76,7 +142,8 @@ Route::middleware(['web','auth','verified'])->group(function () {
         Route::get('/companies/{company}/intent',  IntentEditor::class)->name('companies.intent.edit');
 
         // Requests + Deal Rooms
-        Route::get('/requests', [\App\Http\Controllers\RequestsController::class, 'index'])->name('requests.index');
+        Route::get('/requests', RequestsIndex::class)->name('requests.index');
+
         Route::get('/deal-rooms', [DealRoomController::class, 'index'])->name('deal-rooms.index');
         Route::get('/deal-rooms/{room}', DealRoomShow::class)->name('deal-rooms.show');
     });
@@ -121,6 +188,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/employer/applications/{application}/cv', CvDownloadController::class)
         ->middleware('signed')->name('applications.cv');
 });
+
 
 /*
 |--------------------------------------------------------------------------
@@ -205,13 +273,15 @@ Route::view('/privacy', 'public.legal.privacy')->name('privacy');
 | Blog / Resources
 |--------------------------------------------------------------------------
 */
+
+/*
 Route::get('/blog', [\App\Http\Controllers\BlogController::class, 'index'])->name('blog.index');
 Route::get('/blog/{slug}', [\App\Http\Controllers\BlogController::class, 'show'])->name('blog.show');
 Route::view('/resources', 'public.resources.index')->name('resources');
 Route::view('/case-studies', 'public.case-studies.index')->name('cases.index');
 Route::get('/case-studies/{slug}', fn($slug) => view('public.case-studies.show', compact('slug')))
     ->name('cases.show');
-
+*/
 /*
 |--------------------------------------------------------------------------
 | Authenticated Dashboard (Jetstream default)

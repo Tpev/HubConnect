@@ -25,14 +25,20 @@ class FortifyServiceProvider extends ServiceProvider
     /**
      * Register any application services.
      */
-    public function register(): void
-    {
-        // Custom redirects after register/login
-        $this->app->singleton(
-            \Laravel\Fortify\Contracts\RegisterResponse::class,
-            \App\Http\Responses\RegisterResponse::class
-        );
-    }
+public function register(): void
+{
+    // Custom redirects after register/login
+    $this->app->singleton(
+        \Laravel\Fortify\Contracts\RegisterResponse::class,
+        \App\Http\Responses\RegisterResponse::class
+    );
+
+    $this->app->singleton(
+        \Laravel\Fortify\Contracts\LoginResponse::class,
+        \App\Http\Responses\LoginResponse::class
+    );
+}
+
 
     /**
      * Bootstrap any application services.
